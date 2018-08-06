@@ -4,24 +4,15 @@ import matplotlib.pyplot as plt
 import sys
 
 ressource = sys.argv[1]
-data = pd.read_csv(ressource) # traiter les data pour avoir de vrai key
+data = pd.read_csv(ressource, header=None) # traiter les data pour avoir de vrai key
 line, col = np.shape(data)
-
-df = []
-for key in data:
-    df.append(key)
-print(df)
-data.append(df, ignore_index=True) #fail parce que la liste est une chaine de char et pas des int
 print(data)
 
-Y = data["M"]
+Y = data[1]
 print(Y)
 Y = np.reshape(Y, (line, 1))
 
-X = [np.insert(row, 0, 1) for row in data.drop(["M"], axis=1).values]
-df = pd.DataFrame([[1.0] * 32])
-X.append(df)
-line += 1
+X = [np.insert(row, 0, 1) for row in data.drop([1], axis=1).values]
 X = np.reshape(X, (line, col))
 print(X)
 
@@ -29,9 +20,7 @@ name = []
 a = 1
 for key in data:
     name.append(key)
-    if (key != 'M'):
-        X[line][a] = key
-        a += 1
+
 print(name)
 
 def moy(X, line):
@@ -46,19 +35,20 @@ def moy(X, line):
 def change_nan(X, col, line, data, name):
     a = 0
     for c in range(0, col):
-        if (name[c] != "First Name"):
-                _moy = moy(data[name[c]], line)
-                for l in range(0, line):
-                    if (X[l][c] != X[l][c]):
-                        X[l][c] = _moy
-                        a = a + 1
+        print(name[c])
+        if (c != 1):
+            _moy = moy(data[name[c]], line)
+            for l in range(0, line):
+                if (X[l][c] != X[l][c]):
+                    X[l][c] = _moy
+                    a = a + 1
     return (X)
 
 def pair_plot(X, name, col, line, Y):
     a = 1
     for c in range(1, col):
-        for c2 in range (0, col):
-            if (name[c] != 'First Name' and name[c] != 'Last Name'):
+        for c2 in range (1, col):
+            if (name[c] != '?'):
                 V1 = {}
                 V2 = {}
                 V1['M'] = []
@@ -80,15 +70,15 @@ def pair_plot(X, name, col, line, Y):
                     plt.subplot(5, 5, a)
                     plt.xlabel(name[c])
                     plt.ylabel(name[c2])
-                    plt.hist([V1['M'], V1['B'], V1['M'], V1['B']], bins='auto', density='true',
-                        color=['yellow', 'red', 'green', 'blue'], edgecolor='black')
+                    plt.hist([V1['M'], V1['B']], bins='auto', density='true',
+                        color=['blue', 'red'], edgecolor='black')
                     plt.legend(['M', 'B'])
                     a += 1
                 else:
                     plt.subplot(5, 5, a)
                     plt.xlabel(name[c])
                     plt.ylabel(name[c2])
-                    plt.scatter(V1['M'], V2['M'], color='black', edgecolor='black')
+                    plt.scatter(V1['M'], V2['M'], color='blue', edgecolor='black')
                     plt.scatter(V1['B'], V2['B'], color='red', edgecolor='black')
                     plt.legend(['M', 'B'])
                     a += 1
