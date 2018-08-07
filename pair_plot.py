@@ -4,15 +4,16 @@ import matplotlib.pyplot as plt
 import sys
 
 ressource = sys.argv[1]
-data = pd.read_csv(ressource, header=None) # traiter les data pour avoir de vrai key
+data = pd.read_csv(ressource, header=None)
 line, col = np.shape(data)
+col -= 1
 print(data)
 
 Y = data[1]
 print(Y)
 Y = np.reshape(Y, (line, 1))
 
-X = [np.insert(row, 0, 1) for row in data.drop([1], axis=1).values]
+X = data.drop([1], axis=1).values
 X = np.reshape(X, (line, col))
 print(X)
 
@@ -46,8 +47,8 @@ def change_nan(X, col, line, data, name):
 
 def pair_plot(X, name, col, line, Y):
     a = 1
-    for c in range(1, col):
-        for c2 in range (1, col):
+    for c in range(0, col):
+        for c2 in range (0, col):
             if (name[c] != '?'):
                 V1 = {}
                 V2 = {}
