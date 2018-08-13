@@ -60,8 +60,9 @@ def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
     Z3 = np.reshape([[0.0] * 4 * line], (4, line))
     Z4 = np.reshape([[0.0] * 4 * line], (4, line))
 
+##FORWARD PROPAGATION
     A0 = X
-    print("A0 : ", np.shape(A0))
+    print("A0 : ", np.shape(A0), "\n")
 #    print(A0)
     print("Theta1 : ", np.shape(theta1))
 #    print(theta1)
@@ -69,9 +70,8 @@ def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
     print("Z1 : ", np.shape(Z1))
 #    print(Z1)
     A1 = (np.exp(Z1) - np.exp(-Z1)) / (np.exp(Z1) + np.exp(-Z1))
-    print("A1 : ", np.shape(A1))
+    print("A1 : ", np.shape(A1), "\n")
 #    print(A1)
-    print("\n")
 
     print("Theta2 : ", np.shape(theta2))
 #    print(theta2)
@@ -79,9 +79,8 @@ def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
     print("Z2 : ", np.shape(Z2))
 #    print(Z2)
     A2 = (np.exp(Z2) - np.exp(-Z2)) / (np.exp(Z2) + np.exp(-Z2))
-    print("A2 : ", np.shape(A2))
+    print("A2 : ", np.shape(A2), "\n")
 #    print(A2)
-    print("\n")
 
     print("Theta3 : ", np.shape(theta3))
 #    print(theta3)
@@ -89,9 +88,8 @@ def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
     print("Z3 : ", np.shape(Z3))
 #    print(Z3)
     A3 = (np.exp(Z3) - np.exp(-Z3)) / (np.exp(Z3) + np.exp(-Z3))
-    print("A3 : ", np.shape(A3))
+    print("A3 : ", np.shape(A3), "\n")
 #    print(A3)
-    print("\n")
    
     print("Theta4 : ", np.shape(theta4))
 #    print(theta4)
@@ -101,6 +99,9 @@ def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
     A4 = (np.exp(Z4) - np.exp(-Z4)) / (np.exp(Z4) + np.exp(-Z4))
     print("A4 : ", np.shape(A4))
 #    print(A4) 
+
+##BACKWARD PROPAGATION
+
 
 X = change_nan(X, col, line, data, name)
 neural_network(X, Y, col, line, theta1, theta2, theta3, theta4)
