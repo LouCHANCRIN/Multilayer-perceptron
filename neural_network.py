@@ -12,19 +12,26 @@ Y = data[1]
 Y = np.reshape(Y, (line, 1))
 
 X = data.drop([1], axis=1).values
-print(X)
 X = np.reshape(X, (line, col))
 
 #theta = {}
 #theta['0'] = np.reshape([[0.0] * col], (col, 1))
 #theta['1'] = np.reshape([[0.0] * col], (col, 1))
 
-rand = []
-for i in range(0, col * 2):
-    rand.append(random.randint(-50, 50) * 0.000000001)
+def random_number(col, line):
+    rand = []
+    for i in range(0, col * line):
+        rand.append(random.randint(-50, 50) * 0.000000001)
+    return (rand)
 
-rand = np.reshape(rand, (col * 2, 1))
-theta = np.reshape([[rand]], (2, col))
+rand = random_number(4, line)
+theta1 = np.reshape([[rand]], (4, line))
+rand = random_number(4, 4)
+theta2 = np.reshape([[rand]], (4, 4))
+rand = random_number(4, 4)
+theta3 = np.reshape([[rand]], (4, 4))
+rand = random_number(4, 1)
+theta4 = np.reshape([[rand]], (1, 4))
 
 name = []
 for key in data:
@@ -47,17 +54,53 @@ def change_nan(X, col, line, data, name):
                     X[l][c] = _moy
     return (X)
 
-def neural_network(X, Y, col, line, theta):
-    print("X : ", np.shape(X))
-    print(X)
-    print("Theta : ", np.shape(theta))
-    print(theta)
-    Z = theta.dot(np.transpose(X))
-    print("Z : ", np.shape(Z))
-    print(Z)
-    A = (np.exp(Z) - np.exp(-Z)) / (np.exp(Z) + np.exp(-Z))
-    print("A : ", np.shape(A))
-    print(A)
+def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
+    Z1 = np.reshape([[0.0] * 4 * line], (4, line))
+    Z2 = np.reshape([[0.0] * 4 * line], (4, line))
+    Z3 = np.reshape([[0.0] * 4 * line], (4, line))
+    Z4 = np.reshape([[0.0] * 4 * line], (4, line))
+
+    A0 = X
+    print("A0 : ", np.shape(A0))
+#    print(A0)
+    print("Theta1 : ", np.shape(theta1))
+#    print(theta1)
+    Z1 = theta1.dot(A0)
+    print("Z1 : ", np.shape(Z1))
+#    print(Z1)
+    A1 = (np.exp(Z1) - np.exp(-Z1)) / (np.exp(Z1) + np.exp(-Z1))
+    print("A1 : ", np.shape(A1))
+#    print(A1)
+    print("\n")
+
+    print("Theta2 : ", np.shape(theta2))
+#    print(theta2)
+    Z2 = theta2.dot(A1)
+    print("Z2 : ", np.shape(Z2))
+#    print(Z2)
+    A2 = (np.exp(Z2) - np.exp(-Z2)) / (np.exp(Z2) + np.exp(-Z2))
+    print("A2 : ", np.shape(A2))
+#    print(A2)
+    print("\n")
+
+    print("Theta3 : ", np.shape(theta3))
+#    print(theta3)
+    Z3 = theta3.dot(A2)
+    print("Z3 : ", np.shape(Z3))
+#    print(Z3)
+    A3 = (np.exp(Z3) - np.exp(-Z3)) / (np.exp(Z3) + np.exp(-Z3))
+    print("A3 : ", np.shape(A3))
+#    print(A3)
+    print("\n")
+   
+    print("Theta4 : ", np.shape(theta4))
+#    print(theta4)
+    Z4 = theta4.dot(A3)
+    print("Z4 : ", np.shape(Z4))
+#    print(Z4)
+    A4 = (np.exp(Z4) - np.exp(-Z4)) / (np.exp(Z4) + np.exp(-Z4))
+    print("A4 : ", np.shape(A4))
+#    print(A4) 
 
 X = change_nan(X, col, line, data, name)
-neural_network(X, Y, col, line, theta)
+neural_network(X, Y, col, line, theta1, theta2, theta3, theta4)
