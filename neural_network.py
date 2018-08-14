@@ -14,10 +14,6 @@ Y = np.reshape(Y, (line, 1))
 X = data.drop([1], axis=1).values
 X = np.reshape(X, (line, col))
 
-#theta = {}
-#theta['0'] = np.reshape([[0.0] * col], (col, 1))
-#theta['1'] = np.reshape([[0.0] * col], (col, 1))
-
 def random_number(col, line):
     rand = []
     for i in range(0, col * line):
@@ -54,53 +50,54 @@ def change_nan(X, col, line, data, name):
                     X[l][c] = _moy
     return (X)
 
+
+def tanh(Z):
+    return ((np.exp(Z) - np.exp(-Z)) / (np.exp(Z) + np.exp(-Z)))
+
+def d_tanh(Z):
+    tan = tanh(Z)
+    tan = tan * tan
+    return (1 - tan)
+
 def neural_network(X, Y, col, line, theta1, theta2, theta3, theta4):
     Z1 = np.reshape([[0.0] * 4 * line], (4, line))
     Z2 = np.reshape([[0.0] * 4 * line], (4, line))
     Z3 = np.reshape([[0.0] * 4 * line], (4, line))
     Z4 = np.reshape([[0.0] * 4 * line], (4, line))
 
-##FORWARD PROPAGATION
+#FORWARD PROPAGATION
     A0 = X
     print("A0 : ", np.shape(A0), "\n")
-#    print(A0)
+
+    #FIRST LAYER
     print("Theta1 : ", np.shape(theta1))
-#    print(theta1)
     Z1 = theta1.dot(A0)
     print("Z1 : ", np.shape(Z1))
-#    print(Z1)
-    A1 = (np.exp(Z1) - np.exp(-Z1)) / (np.exp(Z1) + np.exp(-Z1))
+    A1 =  tanh(Z1)
     print("A1 : ", np.shape(A1), "\n")
-#    print(A1)
 
+    #SECOND LAYER
     print("Theta2 : ", np.shape(theta2))
-#    print(theta2)
     Z2 = theta2.dot(A1)
     print("Z2 : ", np.shape(Z2))
-#    print(Z2)
-    A2 = (np.exp(Z2) - np.exp(-Z2)) / (np.exp(Z2) + np.exp(-Z2))
+    A2 = tanh(Z2)
     print("A2 : ", np.shape(A2), "\n")
-#    print(A2)
 
+    #THIRD LAYER
     print("Theta3 : ", np.shape(theta3))
-#    print(theta3)
     Z3 = theta3.dot(A2)
     print("Z3 : ", np.shape(Z3))
-#    print(Z3)
-    A3 = (np.exp(Z3) - np.exp(-Z3)) / (np.exp(Z3) + np.exp(-Z3))
+    A3 = tanh(Z3)
     print("A3 : ", np.shape(A3), "\n")
-#    print(A3)
-   
+
+    #FOURTH LAYER
     print("Theta4 : ", np.shape(theta4))
-#    print(theta4)
     Z4 = theta4.dot(A3)
     print("Z4 : ", np.shape(Z4))
-#    print(Z4)
-    A4 = (np.exp(Z4) - np.exp(-Z4)) / (np.exp(Z4) + np.exp(-Z4))
+    A4 = tanh(Z4)
     print("A4 : ", np.shape(A4))
-#    print(A4) 
 
-##BACKWARD PROPAGATION
+#BACKWARD PROPAGATION
 
 
 X = change_nan(X, col, line, data, name)
