@@ -154,14 +154,14 @@ def neural_network(A0, Y, line, W, num_iters, alpha, cost):
         Z.append(0)
     A[0] = A0
     for i in range(0, num_iters):
-        print(i)
+#        print(i)
         A, Z = forward(A, Z, W)
         W = backward(A, Z, Y, W, alpha)
         cost.append(cost_function(Y, A[4], line))
     return (A[4], cost)
 
-num_iters = 5000
-alpha = 0.3
+num_iters = 3000
+alpha = 0.5
 cost = []
 YH, cost = neural_network(A0, Y, line, W, num_iters, alpha, cost)
 
