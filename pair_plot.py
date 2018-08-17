@@ -18,7 +18,6 @@ X = np.reshape(X, (line, col))
 print(X)
 
 name = []
-a = 1
 for key in data:
     name.append(key)
 
@@ -34,7 +33,6 @@ def moy(X, line):
     return (_sum / count)
 
 def change_nan(X, col, line, data, name):
-    a = 0
     for c in range(0, col):
         print(name[c])
         if (c != 1):
@@ -42,7 +40,6 @@ def change_nan(X, col, line, data, name):
             for l in range(0, line):
                 if (X[l][c] != X[l][c]):
                     X[l][c] = _moy
-                    a = a + 1
     return (X)
 
 def pair_plot(X, name, col, line, Y):
