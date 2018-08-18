@@ -78,21 +78,38 @@ def random_number(col, line):
     for i in range(0, col * line):
         rand.append(random.randint(-50, 50) * 0.01)
     return (rand)
+
 W = []
+B = []
 for i in range(0, 5):
     W.append(0)
+    B.append(0)
 
-rand = random_number(30, col)
-W[1] = np.reshape([[rand]], (30, col))
+# n_x = number of neuron for layer x
 
-rand = random_number(30, 4)
-W[2] = np.reshape([[rand]], (4, 30))
+n_1 = 30
+rand = random_number(n_1, col)
+W[1] = np.reshape([[rand]], (n_1, col))
+rand = random_number(n_1, line)
+B[1] = np.reshape([[rand]], (n_1, line))
 
-rand = random_number(30, 4)
-W[3] = np.reshape([[rand]], (30, 4))
+n_2 = 29
+rand = random_number(n_2, n_1)
+W[2] = np.reshape([[rand]], (n_2, n_1))
+rand = random_number(n_2, line)
+B[2] = np.reshape([[rand]], (n_2, line))
 
-rand = random_number(30, 1)
-W[4] = np.reshape([[rand]], (1, 30))
+n_3 = 30
+rand = random_number(n_3, n_2)
+W[3] = np.reshape([[rand]], (n_3, n_2))
+rand = random_number(n_3, line)
+B[3] = np.reshape([[rand]], (n_3, line))
+
+n_4 = 1
+rand = random_number(n_4, n_3)
+W[4] = np.reshape([[rand]], (n_4, n_3))
+rand = random_number(n_4, line)
+B[4] = np.reshape([[rand]], (n_4, line))
 
 ################### NEURAL NETWORK ####################
 
@@ -113,40 +130,54 @@ def d_tanh(Z):
     tan = tan ** 2
     return (1 - tan)
 
-def forward(A, Z, W):
-    Z[1] = W[1].dot(A[0])
+def forward(A, Z, W, B):
+    Z[1] = W[1].dot(A[0]) + B[1]
     A[1] =  tanh(Z[1])
 
-    Z[2] = W[2].dot(A[1])
+    Z[2] = W[2].dot(A[1]) + B[2]
     A[2] = tanh(Z[2])
 
-    Z[3] = W[3].dot(A[2])
+    Z[3] = W[3].dot(A[2]) + B[3]
     A[3] = tanh(Z[3])
 
-    Z[4] = W[4].dot(A[3])
+    Z[4] = W[4].dot(A[3]) + B[4]
     A[4] = sig(Z[4])
-    return (A, Z)
+    return (A, Z, B)
 
-def backward(A, Z, Y, W, alpha):
+def backward(A, Z, Y, W, alpha, B):
     DZ4 = A[4] - Y
-    DW4 = (1 / line) * DZ4.dot(np.transpose(A[3])) #pas sur que transpose
+    DW4 = (1 / line) * DZ4.dot(np.transpose(A[3]))
+    DB4 = (1 / line) * np.sum(DZ4)
+
     DA3 = np.transpose(W[4]).dot(DZ4)
     DZ3 = DA3 * d_tanh(Z[3])
+    DB3 = (1 / line) * np.sum(DZ3)
     DW3 = (1 / line) * DZ3.dot(np.transpose(A[2]))
+
     DA2 = np.transpose(W[3]).dot(DZ3)
     DZ2 = DA2 * d_tanh(Z[2])
+    DB2 = (1 / line) * np.sum(DZ2)
     DW2 = (1 / line) * DZ2.dot(np.transpose(A[1]))
+
     DA1 = np.transpose(W[2]).dot(DZ2)
     DZ1 = DA1 * d_tanh(Z[1])
+    DB1 = (1 / line) * np.sum(DZ1)
     DW1 = (1 / line) * DZ1.dot(np.transpose(A[0]))
 
     W[1] = W[1] - alpha * DW1
-    W[2] = W[2] - alpha * DW2
-    W[3] = W[3] - alpha * DW3
-    W[4] = W[4] - alpha * DW4
-    return (W)
+    B[1] = B[1] - alpha * DB1
 
-def neural_network(A0, Y, line, W, num_iters, alpha, cost):
+    W[2] = W[2] - alpha * DW2
+    B[2] = B[2] - alpha * DB2
+
+    W[3] = W[3] - alpha * DW3
+    B[3] = B[3] - alpha * DB3
+
+    W[4] = W[4] - alpha * DW4
+    B[4] = B[4] - alpha * DB4
+    return (W, B)
+
+def neural_network(A0, Y, line, W, num_iters, alpha, cost, B):
     A = []
     Z = []
     for i in range(0, 5):
@@ -154,16 +185,16 @@ def neural_network(A0, Y, line, W, num_iters, alpha, cost):
         Z.append(0)
     A[0] = A0
     for i in range(0, num_iters):
-#        print(i)
-        A, Z = forward(A, Z, W)
-        W = backward(A, Z, Y, W, alpha)
+        print(i)
+        A, Z, B = forward(A, Z, W, B)
+        W, B = backward(A, Z, Y, W, alpha, B)
         cost.append(cost_function(Y, A[4], line))
     return (A[4], cost)
 
-num_iters = 3000
+num_iters = 2000
 alpha = 0.5
 cost = []
-YH, cost = neural_network(A0, Y, line, W, num_iters, alpha, cost)
+YH, cost = neural_network(A0, Y, line, W, num_iters, alpha, cost, B)
 
 ################# COST VISU #################
 
