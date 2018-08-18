@@ -7,7 +7,6 @@ import sys
 ressource = sys.argv[1]
 data = pd.read_csv(ressource, header=None)
 line, col = np.shape(data)
-col -= 1
 
 ################### RESULTAT ####################
 
@@ -22,6 +21,7 @@ for i in range(0, line):
 ################## DATA #############################
 
 X = data.drop([1], axis=1).values
+col -= 1
 X = np.reshape(X, (line, col))
 
 name = []
@@ -81,35 +81,23 @@ def random_number(col, line):
 
 W = []
 B = []
-for i in range(0, 5):
-    W.append(0)
-    B.append(0)
+W.append(0)
+B.append(0)
 
-# n_x = number of neuron for layer x
+n = []
+n.append(col)
 
-n_1 = 30
-rand = random_number(n_1, col)
-W[1] = np.reshape([[rand]], (n_1, col))
-rand = random_number(n_1, line)
-B[1] = np.reshape([[rand]], (n_1, line))
+# n[x] = number of neuron for layer x (n[0] = input)
+n.append(30) #n[1]
+n.append(30) #n[2]
+n.append(30) #n[3]
+n.append(1)  #n[4]
 
-n_2 = 29
-rand = random_number(n_2, n_1)
-W[2] = np.reshape([[rand]], (n_2, n_1))
-rand = random_number(n_2, line)
-B[2] = np.reshape([[rand]], (n_2, line))
-
-n_3 = 30
-rand = random_number(n_3, n_2)
-W[3] = np.reshape([[rand]], (n_3, n_2))
-rand = random_number(n_3, line)
-B[3] = np.reshape([[rand]], (n_3, line))
-
-n_4 = 1
-rand = random_number(n_4, n_3)
-W[4] = np.reshape([[rand]], (n_4, n_3))
-rand = random_number(n_4, line)
-B[4] = np.reshape([[rand]], (n_4, line))
+for i in range(1, 5):
+    rand = random_number(n[i], n[i - 1])
+    W.append(np.reshape([[rand]], (n[i], n[i - 1])))
+    rand = random_number(n[i], line)
+    B.append(np.reshape([[rand]], (n[i], line)))
 
 ################### NEURAL NETWORK ####################
 
@@ -165,16 +153,15 @@ def backward(A, Z, Y, W, alpha, B):
     DW1 = (1 / line) * DZ1.dot(np.transpose(A[0]))
 
     W[1] = W[1] - alpha * DW1
-    B[1] = B[1] - alpha * DB1
-
     W[2] = W[2] - alpha * DW2
-    B[2] = B[2] - alpha * DB2
-
     W[3] = W[3] - alpha * DW3
-    B[3] = B[3] - alpha * DB3
-
     W[4] = W[4] - alpha * DW4
+
+    B[1] = B[1] - alpha * DB1
+    B[2] = B[2] - alpha * DB2
+    B[3] = B[3] - alpha * DB3
     B[4] = B[4] - alpha * DB4
+
     return (W, B)
 
 def neural_network(A0, Y, line, W, num_iters, alpha, cost, B):
@@ -185,14 +172,15 @@ def neural_network(A0, Y, line, W, num_iters, alpha, cost, B):
         Z.append(0)
     A[0] = A0
     for i in range(0, num_iters):
-        print(i)
+        if (i % 100 == 0):
+            print(i)
         A, Z, B = forward(A, Z, W, B)
         W, B = backward(A, Z, Y, W, alpha, B)
         cost.append(cost_function(Y, A[4], line))
     return (A[4], cost)
 
-num_iters = 2000
-alpha = 0.5
+num_iters = 3000
+alpha = 0.7
 cost = []
 YH, cost = neural_network(A0, Y, line, W, num_iters, alpha, cost, B)
 
@@ -210,4 +198,4 @@ YH = np.reshape(YH, (line))
 #print_res(Y, YH)
 print_cost(cost)
 print("Last value of cost : ", cost[num_iters - 1])
-print("* 100              : ", cost[num_iters - 1] * 100)
+print("100 - cost         : ", 100 - cost[num_iters - 1])
