@@ -225,13 +225,16 @@ def print_cost(cost):
     plt.show()
 
 def accuracy(line_test, confu):
-    print("Accuracy : ", (confu['vn'] + confu['vp']) / line_test * 100)
+    if (line_test != 0):
+        print("Accuracy : ", (confu['vn'] + confu['vp']) / line_test * 100)
 
 def precision(confu):
-    print("Precision : ", (confu['vp'] / (confu['vp'] + confu['fp']) * 100))
+    if (confu['vp'] + confu['fp'] != 0):
+        print("Precision : ", (confu['vp'] / (confu['vp'] + confu['fp']) * 100))
 
 def recall(confu):
-    print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])))
+    if (confu['vp'] + confu['fn'] != 0):
+        print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])))
 
 confusion = {}
 confusion['vp'] = 0
