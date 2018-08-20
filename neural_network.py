@@ -7,71 +7,88 @@ import sys
 ressource = sys.argv[1]
 data = pd.read_csv(ressource, header=None)
 line, col = np.shape(data)
+data = data.iloc[np.random.permutation(line)]
+data = data.reset_index(drop=True)
 
 ################### RESULTAT ####################
+
+line_train = 483
+if (line_train > line):
+    line_train = line
+line_test = line - line_train
 
 res = data[1]
 res = np.reshape(res, (line))
 
-Y = np.reshape([[0] * line], (line))
-for i in range(0, line):
+Y = np.reshape([[0] * line_train], (line_train))
+for i in range(0, line_train):
     if (res[i] == 'M'):
         Y[i] = 1
 
+Y_test = np.reshape([[0] * (line - line_train)], (line - line_train))
+for i in range(line_train, line):
+    if (res[i] == 'M'):
+        Y_test[i - line_train] = 1
+
 ################## DATA #############################
 
-X = data.drop([1], axis=1).values
 col -= 1
-X = np.reshape(X, (line, col))
+A0 = data.drop([1], axis=1).values[:line_train,:]
+A0 = np.reshape(A0, (line_train, col))
+X_test = data.drop([1], axis=1).values[line_train:,:]
+X_test = np.reshape(X_test, (line_test, col))
 
 name = []
 for key in data:
     name.append(key)
 
-def moy(X, line):
+def moy(A0, line):
     count = 0
     _sum = 0
     for l in range(0, line):
-        _sum += X[l]
+        _sum += A0[l]
         count += 1
     return (_sum / count)
 
-def change_nan(X, col, line, data, name):
+def change_nan(A0, col, line, data, name):
     for c in range(0, col):
         if (c != 1):
             _moy = moy(data[name[c]], line)
             for l in range(0, line):
-                if (X[l][c] != X[l][c]):
-                    X[l][c] = _moy
-    return (X)
+                if (A0[l][c] != A0[l][c]):
+                    A0[l][c] = _moy
+    return (A0)
 
 _min = np.reshape([[0.0] * col], (col, 1))
 _max = np.reshape([[0.0] * col], (col, 1))
 _mean = np.reshape([[0.0] * col], (col, 1))
 
-def scale(X, line, col):
+def scale(A0, line, col):
     for c in range(0, col):
-        _min[c] = X[0][c]
-        _max[c] = X[0][c]
+        _min[c] = A0[0][c]
+        _max[c] = A0[0][c]
     for c in range(0, col):
         for l in range(0, line):
-            if (X[l][c] < _min[c]):
-                _min[c] = X[l][c]
-            if (X[l][c] > _max[c]):
-                _max[c] = X[l][c]
-            _mean[c] += X[l][c]
+            if (A0[l][c] < _min[c]):
+                _min[c] = A0[l][c]
+            if (A0[l][c] > _max[c]):
+                _max[c] = A0[l][c]
+            _mean[c] += A0[l][c]
     for c in range(0, col):
         _mean[c] /= line
     for c in range(0, col):
         for l in range(0, line):
-            X[l][c] = (X[l][c] - _mean[c]) / (_max[c] - _min[c])
-    return (X)
+            A0[l][c] = (A0[l][c] - _mean[c]) / (_max[c] - _min[c])
+    return (A0)
 
-X = change_nan(X, col, line, data, name)
-X = scale(X, line, col)
-A0 = np.transpose(X)
+A0 = change_nan(A0, col, line_train, data, name)
+A0 = scale(A0, line_train, col)
+A0 = np.transpose(A0)
+X_test = change_nan(X_test, col, line_test, data, name)
+X_test = scale(X_test, line_test, col)
+X_test = np.transpose(X_test)
 
-################### THETA ##########################
+################### THETA BIAS ##########################
 
 def random_number(col, line):
     rand = []
@@ -96,14 +113,21 @@ n.append(1)  #n[4]
 for i in range(1, 5):
     rand = random_number(n[i], n[i - 1])
     W.append(np.reshape([[rand]], (n[i], n[i - 1])))
-    rand = random_number(n[i], line)
-    B.append(np.reshape([[rand]], (n[i], line)))
+    rand = random_number(n[i], 1)
+    B.append(np.reshape([[0.0] * n[i]], (n[i], 1)))
 
 ################### NEURAL NETWORK ####################
 
-def cost_function(Y, YH, line):
-    ret = ((YH ** Y) * ((1 - YH) ** (1 - Y)))
-    return (-np.sum(np.log(ret)) / line)
+def cost_function(Y, W, line_test, B, A_test, Z_test):
+    A_test, Z, B = forward(A_test, Z_test, W, B)
+    ret = 0
+    YH = np.transpose(A_test[4])
+    for i in range(0, line_test):
+        if (Y[i] == 1):
+            ret += np.log(YH[i])
+        else:
+            ret += np.log(1 - YH[i])
+    return (-ret / line_test)
 
 def sig(Z):
     return (1 / (1 + np.exp(-Z)))
@@ -132,25 +156,25 @@ def forward(A, Z, W, B):
     A[4] = sig(Z[4])
     return (A, Z, B)
 
-def backward(A, Z, Y, W, alpha, B):
+def backward(A, Z, Y, W, alpha, B, line_train):
     DZ4 = A[4] - Y
-    DW4 = (1 / line) * DZ4.dot(np.transpose(A[3]))
-    DB4 = (1 / line) * np.sum(DZ4)
+    DW4 = (1 / line_train) * DZ4.dot(np.transpose(A[3]))
+    DB4 = (1 / line_train) * np.sum(DZ4)
 
     DA3 = np.transpose(W[4]).dot(DZ4)
     DZ3 = DA3 * d_tanh(Z[3])
-    DB3 = (1 / line) * np.sum(DZ3)
-    DW3 = (1 / line) * DZ3.dot(np.transpose(A[2]))
+    DB3 = (1 / line_train) * np.sum(DZ3)
+    DW3 = (1 / line_train) * DZ3.dot(np.transpose(A[2]))
 
     DA2 = np.transpose(W[3]).dot(DZ3)
     DZ2 = DA2 * d_tanh(Z[2])
-    DB2 = (1 / line) * np.sum(DZ2)
-    DW2 = (1 / line) * DZ2.dot(np.transpose(A[1]))
+    DB2 = (1 / line_train) * np.sum(DZ2)
+    DW2 = (1 / line_train) * DZ2.dot(np.transpose(A[1]))
 
     DA1 = np.transpose(W[2]).dot(DZ2)
     DZ1 = DA1 * d_tanh(Z[1])
-    DB1 = (1 / line) * np.sum(DZ1)
-    DW1 = (1 / line) * DZ1.dot(np.transpose(A[0]))
+    DB1 = (1 / line_train) * np.sum(DZ1)
+    DW1 = (1 / line_train) * DZ1.dot(np.transpose(A[0]))
 
     W[1] = W[1] - alpha * DW1
     W[2] = W[2] - alpha * DW2
@@ -164,38 +188,72 @@ def backward(A, Z, Y, W, alpha, B):
 
     return (W, B)
 
-def neural_network(A0, Y, line, W, num_iters, alpha, cost, B):
+def neural_network(A0, X_test, Y, Y_test, line_train, line_test, W, num_iters, alpha, cost, B):
     A = []
+    A_test = []
     Z = []
+    Z_test = []
     for i in range(0, 5):
         A.append(0)
+        A_test.append(0)
         Z.append(0)
+        Z_test.append(0)
     A[0] = A0
+    A_test[0] = X_test
     for i in range(0, num_iters):
         if (i % 100 == 0):
             print(i)
         A, Z, B = forward(A, Z, W, B)
-        W, B = backward(A, Z, Y, W, alpha, B)
-        cost.append(cost_function(Y, A[4], line))
-    return (A[4], cost)
+        W, B = backward(A, Z, Y, W, alpha, B, line_train)
+        cost.append(cost_function(Y_test, W, line_test, B, A_test, Z_test))
+    A[0] = X_test
+    A, Z, B = forward(A, Z, W, B)
+    return (A[4], cost, B)
 
-num_iters = 3000
-alpha = 0.7
+################ HYPER PARAM ######################
+
+num_iters = 8000
+alpha = 0.002
 cost = []
-YH, cost = neural_network(A0, Y, line, W, num_iters, alpha, cost, B)
+YH, cost, B = neural_network(A0, X_test, Y, Y_test, line_train, line - line_train, W, num_iters, alpha, cost, B)
+YH = np.reshape(YH, (line_test))
 
 ################# COST VISU #################
-
-def print_res(Y, YH):
-    for i in range(0, line):
-        print(Y[i], "  ", YH[i])
 
 def print_cost(cost):
     plt.plot(cost)
     plt.show()
 
-YH = np.reshape(YH, (line))
-#print_res(Y, YH)
+def accuracy(line_test, confu):
+    print("Accuracy : ", (confu['vn'] + confu['vp']) / line_test * 100)
+
+def precision(confu):
+    print("Precision : ", (confu['vp'] / (confu['vp'] + confu['fp']) * 100))
+
+def recall(confu):
+    print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])))
+
+confusion = {}
+confusion['vp'] = 0
+confusion['vn'] = 0
+confusion['fp'] = 0
+confusion['fn'] = 0
+
+for i in range(0, line_test):
+    if (Y_test[i] == 1):
+        if (YH[i] >= 0.5):
+            confusion['vp'] += 1
+        else:
+            confusion['fn'] += 1
+    else:
+        if (YH[i] >= 0.5):
+            confusion['fp'] += 1
+        else:
+            confusion['vn'] += 1
+
+
+accuracy(line_test, confusion)
+precision(confusion)
+recall(confusion)
 print_cost(cost)
 print("Last value of cost : ", cost[num_iters - 1])
-print("100 - cost         : ", 100 - cost[num_iters - 1])
