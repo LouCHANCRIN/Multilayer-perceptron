@@ -12,7 +12,7 @@ data = data.reset_index(drop=True)
 
 ################### RESULTAT ####################
 
-line_train = 483
+line_train = int(line * 0.85)
 if (line_train > line):
     line_train = line
 line_test = line - line_train
@@ -29,6 +29,29 @@ Y_test = np.reshape([[0] * (line - line_train)], (line - line_train))
 for i in range(line_train, line):
     if (res[i] == 'M'):
         Y_test[i - line_train] = 1
+
+Y_test = np.reshape([[0] * (line - line_train)], (line - line_train))
+for i in range(line_train, line):
+    if (res[i] == 'M'):
+        Y_test[i - line_train] = 1
+
+####### Y SOFT FONCTION 2 CLASS ###############
+
+Y_soft = np.reshape([[0] * line_train * 2], (2, line_train))
+for i in range(0, line_train):
+    if (res[i] == 'M'):
+        Y_soft[0][i] = 1
+        Y_soft[1][i] = 0
+    else:
+        Y_soft[1][i] = 1
+
+Y_soft_test = np.reshape([[0] * (line - line_train) * 2], (2, line - line_train))
+for i in range(line_train, line):
+    if (res[i] == 'M'):
+        Y_soft_test[0][i - line_train] = 1
+        Y_soft_test[1][i - line_train] = 0
+    else:
+        Y_soft_test[1][i - line_train] = 1
 
 ################## DATA #############################
 
@@ -108,7 +131,7 @@ n.append(col)
 n.append(30) #n[1]
 n.append(30) #n[2]
 n.append(30) #n[3]
-n.append(1)  #n[4]
+n.append(2)  #n[4]
 
 for i in range(1, 5):
     rand = random_number(n[i], n[i - 1])
@@ -129,8 +152,55 @@ def cost_function(Y, W, line_test, B, A_test, Z_test):
             ret += np.log(1 - YH[i])
     return (-ret / line_test)
 
+def soft_max(Z):
+    x, y = np.shape(Z)
+#    div = np.reshape([[0.0] * y * 2], (2, y))
+#    for i in range(0, y):
+#        div[0][i] = np.sum(np.exp(Z[:,i]))
+#        div[1][i] = np.sum(np.exp(Z[:,i]))
+#    ret = Z / div
+#    return (ret)
+    ret = Z
+    for i in range(0, y): #86 483
+        som = np.sum(np.exp(Z[:,i]))
+        for j in range(0, x): #2
+            ret[j][i] = np.exp(Z[j][i]) / som
+    return (ret)
+    #return (np.exp(Z) / np.sum(np.exp(Z[:,i])))
+    #return (np.exp(Z) / (np.sum(np.exp(Z))))
+
+def relu(Z):
+    #ret = np.log(1 + np.exp(Z))
+    if (Z.any() < 0):
+        Z = 0
+    return (Z)
+
+def d_relu(Z):
+    if (Z.any() <= 0):
+        Z = 0
+    else:
+        Z = 1
+    return (Z)
+
+def leaky_relu(Z):
+    #ret = np.log(1 + np.exp(Z))
+    if (Z.any() < 0):
+        Z *= 0.01
+    return (Z)
+
+def d_leaky_relu(Z):
+    if (Z.any() <= 0):
+        Z = 0.01
+    else:
+        Z = 1
+    return (Z)
+
 def sig(Z):
     return (1 / (1 + np.exp(-Z)))
+
+def d_sig(Z):
+    s = sig(Z)
+    return (s * (1 - s))
 
 def tanh(Z):
     A = np.exp(Z)
@@ -153,7 +223,7 @@ def forward(A, Z, W, B):
     A[3] = tanh(Z[3])
 
     Z[4] = W[4].dot(A[3]) + B[4]
-    A[4] = sig(Z[4])
+    A[4] = soft_max(Z[4])
     return (A, Z, B)
 
 def backward(A, Z, Y, W, alpha, B, line_train):
@@ -212,12 +282,11 @@ def neural_network(A0, X_test, Y, Y_test, line_train, line_test, W, num_iters, a
 
 ################ HYPER PARAM ######################
 
-num_iters = 8000
+num_iters = 300
 alpha = 0.002
 cost = []
-YH, cost, B = neural_network(A0, X_test, Y, Y_test, line_train, line - line_train, W, num_iters, alpha, cost, B)
-YH = np.reshape(YH, (line_test))
-
+YH, cost, B = neural_network(A0, X_test, Y_soft, Y_test, line_train, line - line_train, W, num_iters, alpha, cost, B)
+YH = np.reshape(YH, (2, line_test))
 ################# COST VISU #################
 
 def print_cost(cost):
@@ -242,19 +311,24 @@ confusion['vn'] = 0
 confusion['fp'] = 0
 confusion['fn'] = 0
 
+def print_YH(Y, YH):
+    for i in range(0, line_test):
+        print(YH[0][i], Y[i])
+
 for i in range(0, line_test):
     if (Y_test[i] == 1):
-        if (YH[i] >= 0.5):
+        if (YH[0][i] >= 0.5):
             confusion['vp'] += 1
         else:
             confusion['fn'] += 1
     else:
-        if (YH[i] >= 0.5):
+        if (YH[0][i] >= 0.5):
             confusion['fp'] += 1
         else:
             confusion['vn'] += 1
 
 
+#print_YH(Y, Y_test)
 accuracy(line_test, confusion)
 precision(confusion)
 recall(confusion)
