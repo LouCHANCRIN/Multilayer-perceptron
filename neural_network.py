@@ -10,7 +10,51 @@ line, col = np.shape(data)
 data = data.iloc[np.random.permutation(line)]
 data = data.reset_index(drop=True)
 
-################### RESULTAT ####################
+################### HYPER PARAM ##########################
+
+nb_layer = 4
+num_iters = 5000
+alpha = 0.005
+col -= 1
+
+################# ACTIVATION FUNCTION ###################
+
+activation = []
+activation.append(0)
+activation.append("relu")
+activation.append("leaky_relu") # ATTENTION il peut etre nescessaire de modifier
+activation.append("tanh")       # Y en fonction de la fonction d'activation
+activation.append("soft_max")   # utiliser sur le denier layer
+                              
+################### THETA BIAS ##########################
+
+def random_number(col, line):
+    rand = []
+    for i in range(0, col * line):
+        rand.append(random.randint(-50, 50) * 0.01)
+    return (rand)
+
+W = []
+B = []
+W.append(0)
+B.append(0)
+
+n = []
+n.append(col)
+
+# n[x] = number of neuron for layer x (n[0] = input)
+n.append(30) #n[1]
+n.append(30) #n[2]
+n.append(30) #n[3] # ATTENTION il peut etre nescessaire de modifier
+n.append(2)  #n[4] # Y en fonction du nombre de neurone sur le dernier layer
+
+for i in range(1, nb_layer + 1):
+    rand = random_number(n[i], n[i - 1])
+    W.append(np.reshape([[rand]], (n[i], n[i - 1])))
+    rand = random_number(n[i], 1)
+    B.append(np.reshape([[0.0] * n[i]], (n[i], 1)))
+
+################### Y (RESULTAT) ####################
 
 line_train = int(line * 0.85)
 if (line_train > line):
@@ -49,13 +93,11 @@ Y_soft_test = np.reshape([[0] * (line - line_train) * 2], (2, line - line_train)
 for i in range(line_train, line):
     if (res[i] == 'M'):
         Y_soft_test[0][i - line_train] = 1
-        Y_soft_test[1][i - line_train] = 0
     else:
         Y_soft_test[1][i - line_train] = 1
 
 ################## DATA #############################
 
-col -= 1
 A0 = data.drop([1], axis=1).values[:line_train,:]
 A0 = np.reshape(A0, (line_train, col))
 X_test = data.drop([1], axis=1).values[line_train:,:]
@@ -111,183 +153,7 @@ X_test = change_nan(X_test, col, line_test, data, name)
 X_test = scale(X_test, line_test, col)
 X_test = np.transpose(X_test)
 
-################### THETA BIAS ##########################
-
-def random_number(col, line):
-    rand = []
-    for i in range(0, col * line):
-        rand.append(random.randint(-50, 50) * 0.01)
-    return (rand)
-
-W = []
-B = []
-W.append(0)
-B.append(0)
-
-n = []
-n.append(col)
-
-# n[x] = number of neuron for layer x (n[0] = input)
-n.append(30) #n[1]
-n.append(30) #n[2]
-n.append(30) #n[3]
-n.append(2)  #n[4]
-
-for i in range(1, 5):
-    rand = random_number(n[i], n[i - 1])
-    W.append(np.reshape([[rand]], (n[i], n[i - 1])))
-    rand = random_number(n[i], 1)
-    B.append(np.reshape([[0.0] * n[i]], (n[i], 1)))
-
-################### NEURAL NETWORK ####################
-
-def cost_function(Y, W, line_test, B, A_test, Z_test):
-    A_test, Z, B = forward(A_test, Z_test, W, B)
-    ret = 0
-    YH = np.transpose(A_test[4])
-    for i in range(0, line_test):
-        if (Y[i] == 1):
-            ret += np.log(YH[i])
-        else:
-            ret += np.log(1 - YH[i])
-    return (-ret / line_test)
-
-def soft_max(Z):
-    x, y = np.shape(Z)
-#    div = np.reshape([[0.0] * y * 2], (2, y))
-#    for i in range(0, y):
-#        div[0][i] = np.sum(np.exp(Z[:,i]))
-#        div[1][i] = np.sum(np.exp(Z[:,i]))
-#    ret = Z / div
-#    return (ret)
-    ret = Z
-    for i in range(0, y): #86 483
-        som = np.sum(np.exp(Z[:,i]))
-        for j in range(0, x): #2
-            ret[j][i] = np.exp(Z[j][i]) / som
-    return (ret)
-    #return (np.exp(Z) / np.sum(np.exp(Z[:,i])))
-    #return (np.exp(Z) / (np.sum(np.exp(Z))))
-
-def relu(Z):
-    #ret = np.log(1 + np.exp(Z))
-    if (Z.any() < 0):
-        Z = 0
-    return (Z)
-
-def d_relu(Z):
-    if (Z.any() <= 0):
-        Z = 0
-    else:
-        Z = 1
-    return (Z)
-
-def leaky_relu(Z):
-    #ret = np.log(1 + np.exp(Z))
-    if (Z.any() < 0):
-        Z *= 0.01
-    return (Z)
-
-def d_leaky_relu(Z):
-    if (Z.any() <= 0):
-        Z = 0.01
-    else:
-        Z = 1
-    return (Z)
-
-def sig(Z):
-    return (1 / (1 + np.exp(-Z)))
-
-def d_sig(Z):
-    s = sig(Z)
-    return (s * (1 - s))
-
-def tanh(Z):
-    A = np.exp(Z)
-    B = np.exp(-Z)
-    return ((A - B) / (A + B))
-
-def d_tanh(Z):
-    tan = tanh(Z)
-    tan = tan ** 2
-    return (1 - tan)
-
-def forward(A, Z, W, B):
-    Z[1] = W[1].dot(A[0]) + B[1]
-    A[1] =  tanh(Z[1])
-
-    Z[2] = W[2].dot(A[1]) + B[2]
-    A[2] = tanh(Z[2])
-
-    Z[3] = W[3].dot(A[2]) + B[3]
-    A[3] = tanh(Z[3])
-
-    Z[4] = W[4].dot(A[3]) + B[4]
-    A[4] = soft_max(Z[4])
-    return (A, Z, B)
-
-def backward(A, Z, Y, W, alpha, B, line_train):
-    DZ4 = A[4] - Y
-    DW4 = (1 / line_train) * DZ4.dot(np.transpose(A[3]))
-    DB4 = (1 / line_train) * np.sum(DZ4)
-
-    DA3 = np.transpose(W[4]).dot(DZ4)
-    DZ3 = DA3 * d_tanh(Z[3])
-    DB3 = (1 / line_train) * np.sum(DZ3)
-    DW3 = (1 / line_train) * DZ3.dot(np.transpose(A[2]))
-
-    DA2 = np.transpose(W[3]).dot(DZ3)
-    DZ2 = DA2 * d_tanh(Z[2])
-    DB2 = (1 / line_train) * np.sum(DZ2)
-    DW2 = (1 / line_train) * DZ2.dot(np.transpose(A[1]))
-
-    DA1 = np.transpose(W[2]).dot(DZ2)
-    DZ1 = DA1 * d_tanh(Z[1])
-    DB1 = (1 / line_train) * np.sum(DZ1)
-    DW1 = (1 / line_train) * DZ1.dot(np.transpose(A[0]))
-
-    W[1] = W[1] - alpha * DW1
-    W[2] = W[2] - alpha * DW2
-    W[3] = W[3] - alpha * DW3
-    W[4] = W[4] - alpha * DW4
-
-    B[1] = B[1] - alpha * DB1
-    B[2] = B[2] - alpha * DB2
-    B[3] = B[3] - alpha * DB3
-    B[4] = B[4] - alpha * DB4
-
-    return (W, B)
-
-def neural_network(A0, X_test, Y, Y_test, line_train, line_test, W, num_iters, alpha, cost, B):
-    A = []
-    A_test = []
-    Z = []
-    Z_test = []
-    for i in range(0, 5):
-        A.append(0)
-        A_test.append(0)
-        Z.append(0)
-        Z_test.append(0)
-    A[0] = A0
-    A_test[0] = X_test
-    for i in range(0, num_iters):
-        if (i % 100 == 0):
-            print(i)
-        A, Z, B = forward(A, Z, W, B)
-        W, B = backward(A, Z, Y, W, alpha, B, line_train)
-        cost.append(cost_function(Y_test, W, line_test, B, A_test, Z_test))
-    A[0] = X_test
-    A, Z, B = forward(A, Z, W, B)
-    return (A[4], cost, B)
-
-################ HYPER PARAM ######################
-
-num_iters = 300
-alpha = 0.002
-cost = []
-YH, cost, B = neural_network(A0, X_test, Y_soft, Y_test, line_train, line - line_train, W, num_iters, alpha, cost, B)
-YH = np.reshape(YH, (2, line_test))
-################# COST VISU #################
+################### CHECK FUNCTION ####################
 
 def print_cost(cost):
     plt.plot(cost)
@@ -303,7 +169,183 @@ def precision(confu):
 
 def recall(confu):
     if (confu['vp'] + confu['fn'] != 0):
-        print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])))
+        print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])) * 100)
+
+def cost_function(Y, W, B, A_test, Z_test, activation):
+    forward(A_test, Z_test, W, B, activation)
+    ret = 0
+    YH = np.transpose(A_test[nb_layer])
+    x, y = np.shape(YH)
+    for i in range(0, y):
+        for j in range(0, x):
+            if (Y[i][j] == 1):
+                ret += np.log(YH[j][i])
+            else:
+                ret += np.log(1 - YH[j][i])
+    return (-ret / line_test)
+
+def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
+    size = 0
+    for i in range(1, nb_layer + 1):
+        x, y = np.shape(W[i])
+        size += x * y + x
+    T = np.reshape([[0.0] * size], (size, 1))
+    DT = np.reshape([[0.0] * size], (size, 1))
+    a = 0
+    for i in range(1, nb_layer + 1):
+        x, y = np.shape(W[i])
+        for j in range(0, x):
+            for k in range(0, y):
+                T[a] = W[i][j][k]
+                DT[a] = DW[i][j][k]
+                a += 1
+        for l in range(0, x):
+            tmp = B[i]
+            tmp2 = DB[i]
+            T[a] = tmp[l]
+            DT[a] = tmp2[l]
+            a += 1
+    eps = 0.0000001
+    for i in (0, size):
+        DT[i] =DT[i] - eps
+        cost1 = cost(DT)
+        DT[i] = DT[i] + 2 * eps
+        cost2 = cost(DT)
+        DT[i] = (1)
+
+
+    return (0)
+
+################# ATCIVATION FUNCTION #################
+
+def soft_max(Z):
+    return (np.exp(Z) / np.sum(np.exp(Z), axis = 0))
+    #x, y = np.shape(Z)
+    #ret = Z
+    #for i in range(0, y): #86 483
+    #    som = np.sum(np.exp(Z[:,i]))
+    #    for j in range(0, x): #2
+    #        ret[j][i] = np.exp(Z[j][i]) / som
+    #return (ret)
+
+def relu(Z):
+    if (Z.any() < 0):
+        Z = 0
+    return (Z)
+
+def d_relu(Z):
+    if (Z.any() <= 0):
+        Z = 0
+    else:
+        Z = 1
+    return (Z)
+
+def leaky_relu(Z):
+    if (Z.any() < 0):
+        Z *= 0.01
+    return (Z)
+
+def d_leaky_relu(Z):
+    if (Z.any() <= 0):
+        Z = 0.01
+    else:
+        Z = 1
+    return (Z)
+
+def sigmoid(Z):
+    return (1 / (1 + np.exp(-Z)))
+
+def d_sigmoid(Z):
+    s = sigmoid(Z)
+    return (s * (1 - s))
+
+def tanh(Z):
+    A = np.exp(Z)
+    B = np.exp(-Z)
+    return ((A - B) / (A + B))
+
+def d_tanh(Z):
+    tan = tanh(Z)
+    tan = tan ** 2
+    return (1 - tan)
+
+##################### NEURAL NETWORK ##################
+
+def forward(A, Z, W, B, activation):
+    for l in range(1, nb_layer + 1):
+        Z[l] = W[l].dot(A[l - 1]) + B[l]
+        if (activation[l] == "relu"):
+            A[l] =  relu(Z[l])
+        elif (activation[l] == "leaky_relu"):
+            A[l] =  leaky_relu(Z[l])
+        elif (activation[l] == "tanh"):
+            A[l] =  tanh(Z[l])
+        elif (activation[l] == "soft_max"):
+            A[l] =  soft_max(Z[l])
+        elif (activation[l] == "sigmoid"):
+            A[l] =  sigmoid(Z[l])
+
+def DB_DW(l):
+    DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
+    DB[l] = (1 / line_train) * np.sum(DZ[l], axis=1, keepdims=True)
+
+def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation):
+    l = nb_layer
+    DZ[l] = A[l] - Y
+    DB_DW(l)
+    for x in range(1, l):
+        DA[l - x] = np.transpose(W[l - x + 1]).dot(DZ[l - x + 1])
+        if (activation[l - x] == "relu"):
+            DZ[l - x] = DA[l - x] * d_relu(Z[l - x])
+        elif (activation[l - x] == "leaky_relu"):
+            DZ[l - x] = DA[l - x] * d_leaky_relu(Z[l - x])
+        elif (activation[l - x] == "tanh"):
+            DZ[l - x] = DA[l - x] * d_tanh(Z[l - x])
+        DB_DW(l - x)
+    
+    for i in range(1, nb_layer + 1):
+        W[i] = W[i] - alpha * DW[i]
+        B[i] = B[i] - alpha * DB[i]
+
+def neural_network(Y, Y_test, W, cost, B, activation):
+    for i in range(0, num_iters):
+        if (i % 100 == 0):
+            print(i)
+        forward(A, Z, W, B, activation)
+        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation)
+        #gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
+        cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
+    A[0] = X_test
+    forward(A, Z, W, B, activation)
+    return (A[nb_layer])
+
+############## INITIALISATION #################
+
+A = []
+A_test = []
+Z = []
+Z_test = []
+DA = []
+DW = []
+DZ = []
+DB = []
+for i in range(0, nb_layer + 1):
+    A.append(0)
+    DA.append(0)
+    DW.append(0)
+    DZ.append(0)
+    DB.append(0)
+    A_test.append(0)
+    Z.append(0)
+    Z_test.append(0)
+A[0] = A0
+A_test[0] = X_test
+cost = []
+
+YH = neural_network(Y_soft, Y_soft_test, W, cost, B, activation)
+YH = np.reshape(YH, (n[nb_layer], line_test))
+
+################# COST VISU CHECK #################
 
 confusion = {}
 confusion['vp'] = 0
