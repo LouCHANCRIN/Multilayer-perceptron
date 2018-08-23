@@ -13,25 +13,31 @@ data = data.reset_index(drop=True)
 ################### HYPER PARAM ##########################
 
 nb_layer = 4
-num_iters = 5000
-alpha = 0.005
+num_iters = 30000
+alpha = 0.0012
+drop = [1]
 col -= 1
+#drop = [0,1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,25,26,27,28,2,9,30,31]
+#col -=26
+#print(drop)
 
 ################# ACTIVATION FUNCTION ###################
 
 activation = []
 activation.append(0)
-activation.append("relu")
-activation.append("leaky_relu") # ATTENTION il peut etre nescessaire de modifier
-activation.append("tanh")       # Y en fonction de la fonction d'activation
-activation.append("soft_max")   # utiliser sur le denier layer
+activation.append("relu")       # ATTENTION il peut etre nescessaire de modifier
+activation.append("leaky_relu") # Y et/ou le nombre de neurone
+activation.append("tanh")       # en fonction de la fonction d'activation
+activation.append("soft_max")   # utiliser sur le denier layer 
+                                # (1 neurone pour la sigmoid, le nombre de classe
+                                # si tanh (toujours avoir au moins 2 classe pour tanh))
                               
 ################### THETA BIAS ##########################
 
-def random_number(col, line):
+def random_number(col, line, size):
     rand = []
     for i in range(0, col * line):
-        rand.append(random.randint(-50, 50) * 0.01)
+        rand.append(random.randint(-50, 50) * size)
     return (rand)
 
 W = []
@@ -46,17 +52,17 @@ n.append(col)
 n.append(30) #n[1]
 n.append(30) #n[2]
 n.append(30) #n[3] # ATTENTION il peut etre nescessaire de modifier
-n.append(2)  #n[4] # Y en fonction du nombre de neurone sur le dernier layer
+n.append(2)   #n[4] # Y en fonction du nombre de neurone sur le dernier layer
 
 for i in range(1, nb_layer + 1):
-    rand = random_number(n[i], n[i - 1])
+    rand = random_number(n[i], n[i - 1], 0.01)
     W.append(np.reshape([[rand]], (n[i], n[i - 1])))
-    rand = random_number(n[i], 1)
+    rand = random_number(n[i], 1, 0.01)
     B.append(np.reshape([[0.0] * n[i]], (n[i], 1)))
 
 ################### Y (RESULTAT) ####################
 
-line_train = int(line * 0.85)
+line_train = int(line * 0.60)
 if (line_train > line):
     line_train = line
 line_test = line - line_train
@@ -96,12 +102,14 @@ for i in range(line_train, line):
     else:
         Y_soft_test[1][i - line_train] = 1
 
-################## DATA #############################
+################### DATA SELECTION #######################
 
-A0 = data.drop([1], axis=1).values[:line_train,:]
+A0 = data.drop(drop, axis=1).values[:line_train,:]
 A0 = np.reshape(A0, (line_train, col))
-X_test = data.drop([1], axis=1).values[line_train:,:]
+X_test = data.drop(drop, axis=1).values[line_train:,:]
 X_test = np.reshape(X_test, (line_test, col))
+
+################## DATA SCALING #############################
 
 name = []
 for key in data:
@@ -182,7 +190,7 @@ def cost_function(Y, W, B, A_test, Z_test, activation):
                 ret += np.log(YH[j][i])
             else:
                 ret += np.log(1 - YH[j][i])
-    return (-ret / line_test)
+    return (-ret / (x * y))
 
 def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
     size = 0
@@ -285,14 +293,11 @@ def forward(A, Z, W, B, activation):
         elif (activation[l] == "sigmoid"):
             A[l] =  sigmoid(Z[l])
 
-def DB_DW(l):
-    DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
-    DB[l] = (1 / line_train) * np.sum(DZ[l], axis=1, keepdims=True)
-
 def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation):
     l = nb_layer
     DZ[l] = A[l] - Y
-    DB_DW(l)
+    DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
+    DB[l] = (1 / line_train) * np.sum(DZ[l], axis=1, keepdims=True)
     for x in range(1, l):
         DA[l - x] = np.transpose(W[l - x + 1]).dot(DZ[l - x + 1])
         if (activation[l - x] == "relu"):
@@ -301,7 +306,8 @@ def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation):
             DZ[l - x] = DA[l - x] * d_leaky_relu(Z[l - x])
         elif (activation[l - x] == "tanh"):
             DZ[l - x] = DA[l - x] * d_tanh(Z[l - x])
-        DB_DW(l - x)
+        DW[l - x] = (1 / line_train) * DZ[l - x].dot(np.transpose(A[l - 1 - x]))
+        DB[l - x] = (1 / line_train) * np.sum(DZ[l - x], axis=1, keepdims=True)
     
     for i in range(1, nb_layer + 1):
         W[i] = W[i] - alpha * DW[i]
@@ -374,5 +380,5 @@ for i in range(0, line_test):
 accuracy(line_test, confusion)
 precision(confusion)
 recall(confusion)
-print_cost(cost)
 print("Last value of cost : ", cost[num_iters - 1])
+print_cost(cost)
