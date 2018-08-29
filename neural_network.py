@@ -13,12 +13,18 @@ data = data.reset_index(drop=True)
 ################### HYPER PARAM ##########################
 
 nb_layer = 4
-num_iters = 30000
-alpha = 0.0012
+num_iters = 35000
+alpha = 0.005
+lambd = 1 # set as 0 to avoid l2 regularization
 drop = [1]
 col -= 1
 #drop = [0,1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,25,26,27,28,2,9,30,31]
-#col -=26
+#col -= 26
+
+line_train = int(line * 0.60)
+if (line_train > line):
+    line_train = line
+line_test = line - line_train
 #print(drop)
 
 ################# ACTIVATION FUNCTION ###################
@@ -56,16 +62,12 @@ n.append(2)   #n[4] # Y en fonction du nombre de neurone sur le dernier layer
 
 for i in range(1, nb_layer + 1):
     rand = random_number(n[i], n[i - 1], 0.01)
+    #rand = random_number(n[i], n[i - 1], 2 / line_train)
     W.append(np.reshape([[rand]], (n[i], n[i - 1])))
     rand = random_number(n[i], 1, 0.01)
     B.append(np.reshape([[0.0] * n[i]], (n[i], 1)))
 
 ################### Y (RESULTAT) ####################
-
-line_train = int(line * 0.60)
-if (line_train > line):
-    line_train = line
-line_test = line - line_train
 
 res = data[1]
 res = np.reshape(res, (line))
@@ -190,7 +192,10 @@ def cost_function(Y, W, B, A_test, Z_test, activation):
                 ret += np.log(YH[j][i])
             else:
                 ret += np.log(1 - YH[j][i])
-    return (-ret / (x * y))
+    if (lambd != 0):
+        for i in range(1, nb_layer + 1):
+            regu = np.sum(np.transpose(W[i]).dot(W[i]))
+    return (-ret / (x * y) + (lambd / (2 * line_train)) * regu)
 
 def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
     size = 0
@@ -199,28 +204,35 @@ def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
         size += x * y + x
     T = np.reshape([[0.0] * size], (size, 1))
     DT = np.reshape([[0.0] * size], (size, 1))
+    Dapprox = np.reshape([[0.0] * size], (size, 1))
     a = 0
     for i in range(1, nb_layer + 1):
         x, y = np.shape(W[i])
         for j in range(0, x):
             for k in range(0, y):
                 T[a] = W[i][j][k]
-                DT[a] = DW[i][j][k]
+                DT[a] = T[a]
+                #DT[a] = DW[i][j][k]
                 a += 1
         for l in range(0, x):
             tmp = B[i]
             tmp2 = DB[i]
             T[a] = tmp[l]
-            DT[a] = tmp2[l]
+            DT[a] = tmp[l]
+            #DT[a] = tmp2[l]
             a += 1
     eps = 0.0000001
-    for i in (0, size):
-        DT[i] =DT[i] - eps
-        cost1 = cost(DT)
-        DT[i] = DT[i] + 2 * eps
-        cost2 = cost(DT)
-        DT[i] = (1)
-
+    test = []
+    for i in range(0, num_iters - 1):
+        test.append(DT)
+    for i in (0, size - 1):
+        for j in range(0, num_iters - 1):
+            test[j][i] = T[i] - eps
+            cost1 = cost_function(Y, test, B, A_test, Z_test, activation)
+            test[j][i] = T[i] + eps
+            cost2 = cost_function(Y, test, B, A_test, Z_test, activation)
+            test[j][i] = T[i]
+            Dapprox[i] = (cost1 - cost2) / (2 * eps)
 
     return (0)
 
@@ -310,7 +322,7 @@ def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation):
         DB[l - x] = (1 / line_train) * np.sum(DZ[l - x], axis=1, keepdims=True)
     
     for i in range(1, nb_layer + 1):
-        W[i] = W[i] - alpha * DW[i]
+        W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
         B[i] = B[i] - alpha * DB[i]
 
 def neural_network(Y, Y_test, W, cost, B, activation):
@@ -321,9 +333,13 @@ def neural_network(Y, Y_test, W, cost, B, activation):
         backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation)
         #gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
         cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
+        if (cost[i] > cost[i - 1]):
+            A[0] = X_test
+            forward(A, Z, W, B, activation)
+            return (A[nb_layer], i)
     A[0] = X_test
     forward(A, Z, W, B, activation)
-    return (A[nb_layer])
+    return (A[nb_layer], num_iters)
 
 ############## INITIALISATION #################
 
@@ -348,7 +364,7 @@ A[0] = A0
 A_test[0] = X_test
 cost = []
 
-YH = neural_network(Y_soft, Y_soft_test, W, cost, B, activation)
+YH, num_iters = neural_network(Y_soft, Y_soft_test, W, cost, B, activation)
 YH = np.reshape(YH, (n[nb_layer], line_test))
 
 ################# COST VISU CHECK #################
