@@ -13,7 +13,7 @@ data = data.reset_index(drop=True)
 ################### HYPER PARAM ##########################
 
 nb_layer = 4
-num_iters = 350000
+num_iters = 5000
 alpha = 0.005
 lambd = 1 # set as 0 to avoid l2 regularization
 drop = [1]
@@ -43,7 +43,7 @@ activation.append("soft_max")   # utiliser sur le denier layer
 def random_number(col, line, size):
     rand = []
     for i in range(0, col * line):
-        rand.append(random.randint(-100, 100) * size)
+        rand.append(random.randint(-50, 50) * size)
     return (rand)
 
 W = []
@@ -324,7 +324,7 @@ def forward(A, Z, W, B, activation):
         elif (activation[l] == "sigmoid"):
             A[l] =  sigmoid(Z[l])
 
-def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation):
+def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation = 4):
     l = nb_layer
     DZ[l] = A[l] - Y
     DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
