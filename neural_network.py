@@ -195,7 +195,7 @@ def cost_function(Y, W, B, A_test, Z_test, activation):
     if (lambd != 0):
         for i in range(1, nb_layer + 1):
             regu = np.sum(np.transpose(W[i]).dot(W[i]))
-    return (-ret / (x * y) + (lambd / (2 * line_train)) * regu)
+    return ((-ret / (x * y)) + ((lambd / (2 * line_train)) * regu))
 
 def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
     size = 0
@@ -211,29 +211,54 @@ def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
         for j in range(0, x):
             for k in range(0, y):
                 T[a] = W[i][j][k]
-                DT[a] = T[a]
-                #DT[a] = DW[i][j][k]
+                DT[a] = DW[i][j][k]
                 a += 1
         for l in range(0, x):
-            tmp = B[i]
-            tmp2 = DB[i]
-            T[a] = tmp[l]
-            DT[a] = tmp[l]
-            #DT[a] = tmp2[l]
+            T[a] = B[i][l]
+            DT[a] = DB[i][l]
             a += 1
     eps = 0.0000001
     test = []
     for i in range(0, num_iters - 1):
         test.append(DT)
     for i in (0, size - 1):
-        for j in range(0, num_iters - 1):
+        for j in range(0, nb_layer - 1):
             test[j][i] = T[i] - eps
-            cost1 = cost_function(Y, test, B, A_test, Z_test, activation)
+            #cost1 = cost_function(Y, test, B, A_test, Z_test, activation)
             test[j][i] = T[i] + eps
-            cost2 = cost_function(Y, test, B, A_test, Z_test, activation)
+            #cost2 = cost_function(Y, test, B, A_test, Z_test, activation)
             test[j][i] = T[i]
-            Dapprox[i] = (cost1 - cost2) / (2 * eps)
-
+            #Dapprox[i] = (cost1 - cost2) / (2 * eps)
+    l = 0
+    for i in range(1, nb_layer - 1):
+        x, y = np.shape(W[i])
+        for j in range(0, x):
+            for k in range(0, y):
+                W[i][j][k] += eps
+                cost1 = cost_function(Y, W, B, A_test, Z_test, activation)
+                W[i][j][k] -= 2 * eps
+                cost2 = cost_function(Y, W, B, A_test, Z_test, activation)
+                W[i][j][k] += eps
+                Dapprox[l] = ((cost1 - cost2) / (2 * eps))
+                #print(Dapprox[l], DT[l])
+                l += 1
+    _1 = (Dapprox ** 2) - (DT ** 2)
+    _2 = np.sqrt(Dapprox ** 2)
+    _3 = np.sqrt(DT ** 2)
+    _4 = _2 + _3
+    print(_1)
+    print(_2)
+    print(_3)
+    print(_2 + _3)
+    x, y = np.shape(_4)
+    for i in range(0, x):
+        for j in range(0, y):
+            if (_4[i][j] == 0):
+                print("ERROROROR")
+    check = np.sqrt((Dapprox ** 2) - (DT ** 2)) / (np.sqrt(Dapprox ** 2) + np.sqrt(DT ** 2))
+    print(check)
+    #for i in range(0, size):
+        #print(DT[i], Dapprox[i])
     return (0)
 
 ################# ATCIVATION FUNCTION #################
@@ -331,7 +356,7 @@ def neural_network(Y, Y_test, W, cost, B, activation):
             print(i)
         forward(A, Z, W, B, activation)
         backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation)
-        #gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
+        gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
         cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
         if (cost[i] > cost[i - 1]):
             A[0] = X_test
