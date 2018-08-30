@@ -13,7 +13,7 @@ data = data.reset_index(drop=True)
 ################### HYPER PARAM ##########################
 
 nb_layer = 4
-num_iters = 35000
+num_iters = 350000
 alpha = 0.005
 lambd = 1 # set as 0 to avoid l2 regularization
 drop = [1]
@@ -43,7 +43,7 @@ activation.append("soft_max")   # utiliser sur le denier layer
 def random_number(col, line, size):
     rand = []
     for i in range(0, col * line):
-        rand.append(random.randint(-50, 50) * size)
+        rand.append(random.randint(-100, 100) * size)
     return (rand)
 
 W = []
@@ -218,44 +218,38 @@ def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
             DT[a] = DB[i][l]
             a += 1
     eps = 0.0000001
-    test = []
-    for i in range(0, num_iters - 1):
-        test.append(DT)
-    for i in (0, size - 1):
-        for j in range(0, nb_layer - 1):
-            test[j][i] = T[i] - eps
-            #cost1 = cost_function(Y, test, B, A_test, Z_test, activation)
-            test[j][i] = T[i] + eps
-            #cost2 = cost_function(Y, test, B, A_test, Z_test, activation)
-            test[j][i] = T[i]
-            #Dapprox[i] = (cost1 - cost2) / (2 * eps)
+#    test = []
+#    for i in range(0, num_iters - 1):
+#        test.append(DT)
+#    for i in (0, size - 1):
+#        for j in range(0, nb_layer - 1):
+#            test[j][i] = T[i] - eps
+#            cost1 = cost_function(Y, test, B, A_test, Z_test, activation)
+#            test[j][i] = T[i] + eps
+#            cost2 = cost_function(Y, test, B, A_test, Z_test, activation)
+#            test[j][i] = T[i]
+#            Dapprox[i] = (cost1 - cost2) / (2 * eps)
     l = 0
     for i in range(1, nb_layer - 1):
         x, y = np.shape(W[i])
         for j in range(0, x):
             for k in range(0, y):
-                W[i][j][k] += eps
+                W[i][j][k] -= eps
                 cost1 = cost_function(Y, W, B, A_test, Z_test, activation)
-                W[i][j][k] -= 2 * eps
+                W[i][j][k] += 2 * eps
                 cost2 = cost_function(Y, W, B, A_test, Z_test, activation)
-                W[i][j][k] += eps
+                W[i][j][k] -= eps
                 Dapprox[l] = ((cost1 - cost2) / (2 * eps))
                 #print(Dapprox[l], DT[l])
                 l += 1
-    _1 = (Dapprox ** 2) - (DT ** 2)
+    _1 = (Dapprox - DT) ** 2
     _2 = np.sqrt(Dapprox ** 2)
     _3 = np.sqrt(DT ** 2)
     _4 = _2 + _3
-    print(_1)
-    print(_2)
-    print(_3)
-    print(_2 + _3)
+#    print(_2 + _3, "\n\n\n")
     x, y = np.shape(_4)
-    for i in range(0, x):
-        for j in range(0, y):
-            if (_4[i][j] == 0):
-                print("ERROROROR")
-    check = np.sqrt((Dapprox ** 2) - (DT ** 2)) / (np.sqrt(Dapprox ** 2) + np.sqrt(DT ** 2))
+    #check = np.sqrt((Dapprox - DT) ** 2) / (np.sqrt(Dapprox ** 2) + np.sqrt(DT ** 2))
+    check = np.sum(_1) / (np.sum(_2) + np.sum(_3))
     print(check)
     #for i in range(0, size):
         #print(DT[i], Dapprox[i])
@@ -356,7 +350,7 @@ def neural_network(Y, Y_test, W, cost, B, activation):
             print(i)
         forward(A, Z, W, B, activation)
         backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation)
-        gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
+        #gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
         cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
         if (cost[i] > cost[i - 1]):
             A[0] = X_test
