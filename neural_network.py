@@ -15,6 +15,8 @@ data = data.reset_index(drop=True)
 nb_layer = 4
 num_iters = 5000
 alpha = 0.005
+beta = 0.9
+momentum = 0
 lambd = 1 # set as 0 to avoid l2 regularization
 drop = [1]
 col -= 1
@@ -340,9 +342,20 @@ def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation = 4):
         DW[l - x] = (1 / line_train) * DZ[l - x].dot(np.transpose(A[l - 1 - x]))
         DB[l - x] = (1 / line_train) * np.sum(DZ[l - x], axis=1, keepdims=True)
     
-    for i in range(1, nb_layer + 1):
-        W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
-        B[i] = B[i] - alpha * DB[i]
+    if (momentum != 1):
+        for i in range(1, nb_layer + 1):
+            W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
+            B[i] = B[i] - alpha * DB[i]
+    else:
+        for i in range(1, nb_layer + 1):
+            x, y = np.shape(W[i])
+            vdw = np.reshape([[0.0] * x * y], (x, y))
+            x, y = np.shape(B[i])
+            vdb = np.reshape([[0.0] * x * y], (x, y))
+            vdw = (beta * vdw) + ((1 - beta) * DW[i])
+            vdb = (beta * vdb) + ((1 - beta) * DB[i])
+            W[i] = W[i] - (alpha * vdw)
+            B[i] = B[i] - (alpha * vdb)
 
 def neural_network(Y, Y_test, W, cost, B, activation):
     for i in range(0, num_iters):
