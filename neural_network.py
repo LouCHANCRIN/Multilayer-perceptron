@@ -14,16 +14,16 @@ data = data.reset_index(drop=True)
 
 nb_layer = 4
 num_iters = 5000
-alpha = 0.005
+alpha = 0.05
 beta = 0.9
-momentum = 0
+momentum = 1 # set a 1 to activate momentum gradient
 lambd = 1 # set as 0 to avoid l2 regularization
 drop = [1]
 col -= 1
 #drop = [0,1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,25,26,27,28,2,9,30,31]
 #col -= 26
 
-line_train = int(line * 0.60)
+line_train = int(line * 0.70)
 if (line_train > line):
     line_train = line
 line_test = line - line_train
@@ -136,33 +136,34 @@ def change_nan(A0, col, line, data, name):
                     A0[l][c] = _moy
     return (A0)
 
-_min = np.reshape([[0.0] * col], (col, 1))
-_max = np.reshape([[0.0] * col], (col, 1))
-_mean = np.reshape([[0.0] * col], (col, 1))
 
-def scale(A0, line, col):
-    for c in range(0, col):
-        _min[c] = A0[0][c]
-        _max[c] = A0[0][c]
-    for c in range(0, col):
-        for l in range(0, line):
-            if (A0[l][c] < _min[c]):
-                _min[c] = A0[l][c]
-            if (A0[l][c] > _max[c]):
-                _max[c] = A0[l][c]
-            _mean[c] += A0[l][c]
-    for c in range(0, col):
-        _mean[c] /= line
-    for c in range(0, col):
-        for l in range(0, line):
-            A0[l][c] = (A0[l][c] - _mean[c]) / (_max[c] - _min[c])
-    return (A0)
+def scale(matrix):
+    x, y = np.shape(matrix)
+    _min = np.reshape([[0.0] * y], (y, 1))
+    _max = np.reshape([[0.0] * y], (y, 1))
+    _mean = np.reshape([[0.0] * y], (y, 1))
+    for c in range(0, y):
+        _min[c] = matrix[0][c]
+        _max[c] = matrix[0][c]
+    for c in range(0, y):
+        for l in range(0, x):
+            if (matrix[l][c] < _min[c]):
+                _min[c] = matrix[l][c]
+            if (matrix[l][c] > _max[c]):
+                _max[c] = matrix[l][c]
+            _mean[c] += matrix[l][c]
+    for c in range(0, y):
+        _mean[c] /= x
+    for c in range(0, y):
+        for l in range(0, x):
+            matrix[l][c] = (matrix[l][c] - _mean[c]) / (_max[c] - _min[c])
+    return (matrix)
 
 A0 = change_nan(A0, col, line_train, data, name)
-A0 = scale(A0, line_train, col)
+A0 = scale(A0)
 A0 = np.transpose(A0)
 X_test = change_nan(X_test, col, line_test, data, name)
-X_test = scale(X_test, line_test, col)
+X_test = scale(X_test)
 X_test = np.transpose(X_test)
 
 ################### CHECK FUNCTION ####################
@@ -248,7 +249,6 @@ def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
     _2 = np.sqrt(Dapprox ** 2)
     _3 = np.sqrt(DT ** 2)
     _4 = _2 + _3
-#    print(_2 + _3, "\n\n\n")
     x, y = np.shape(_4)
     #check = np.sqrt((Dapprox - DT) ** 2) / (np.sqrt(Dapprox ** 2) + np.sqrt(DT ** 2))
     check = np.sum(_1) / (np.sum(_2) + np.sum(_3))
@@ -261,13 +261,6 @@ def gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer):
 
 def soft_max(Z):
     return (np.exp(Z) / np.sum(np.exp(Z), axis = 0))
-    #x, y = np.shape(Z)
-    #ret = Z
-    #for i in range(0, y): #86 483
-    #    som = np.sum(np.exp(Z[:,i]))
-    #    for j in range(0, x): #2
-    #        ret[j][i] = np.exp(Z[j][i]) / som
-    #return (ret)
 
 def relu(Z):
     if (Z.any() < 0):
@@ -315,6 +308,7 @@ def d_tanh(Z):
 def forward(A, Z, W, B, activation):
     for l in range(1, nb_layer + 1):
         Z[l] = W[l].dot(A[l - 1]) + B[l]
+        #Z[l] = scale(Z[l])
         if (activation[l] == "relu"):
             A[l] =  relu(Z[l])
         elif (activation[l] == "leaky_relu"):
@@ -326,7 +320,7 @@ def forward(A, Z, W, B, activation):
         elif (activation[l] == "sigmoid"):
             A[l] =  sigmoid(Z[l])
 
-def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation = 4):
+def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha):
     l = nb_layer
     DZ[l] = A[l] - Y
     DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
@@ -357,12 +351,13 @@ def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation = 4):
             W[i] = W[i] - (alpha * vdw)
             B[i] = B[i] - (alpha * vdb)
 
-def neural_network(Y, Y_test, W, cost, B, activation):
+def neural_network(Y, Y_test, W, cost, B, activation, alpha):
     for i in range(0, num_iters):
         if (i % 100 == 0):
+            #alpha *= 0.98
             print(i)
         forward(A, Z, W, B, activation)
-        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation)
+        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha)
         #gradient_checking(W, B, DW, DB, Y, line_test, A_test, Z_test, nb_layer)
         cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
         if (cost[i] > cost[i - 1]):
@@ -396,7 +391,7 @@ A[0] = A0
 A_test[0] = X_test
 cost = []
 
-YH, num_iters = neural_network(Y_soft, Y_soft_test, W, cost, B, activation)
+YH, num_iters = neural_network(Y_soft, Y_soft_test, W, cost, B, activation, alpha)
 YH = np.reshape(YH, (n[nb_layer], line_test))
 
 ################# COST VISU CHECK #################
