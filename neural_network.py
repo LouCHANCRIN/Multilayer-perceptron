@@ -14,8 +14,8 @@ data = data.reset_index(drop=True)
 
 nb_layer = 4
 num_iters = 5000
-alpha = 0.05
-gradient = 0
+alpha = 0.005
+gradient = 1
 
 momentum = 0 # set a 1 to activate momentum gradient
 beta = 0.9
@@ -31,9 +31,8 @@ line_train = int(line * 0.60)
 if (line_train > line):
     line_train = line
 line_test = line - line_train
-#print(drop)
 
-################# ACTIVATION FUNCTION ###################
+################# ACTIVATION FUNCTION / LAYER ###################
 
 activation = []
 activation.append(0)
@@ -42,7 +41,15 @@ activation.append("leaky_relu") # Y et/ou le nombre de neurone
 activation.append("tanh")       # en fonction de la fonction d'activation
 activation.append("soft_max")   # utiliser sur le denier layer 
                                 # (1 neurone pour la sigmoid, le nombre de classe
-                                # si tanh (toujours avoir au moins 2 classe pour tanh))
+                                # si softmax (toujours avoir au moins 2 classe pour soft))
+n = []
+n.append(col)
+
+# n[x] = number of neuron for layer x (n[0] = input)
+n.append(30) #n[1]
+n.append(30) #n[2]
+n.append(30) #n[3] # ATTENTION il peut etre nescessaire de modifier
+n.append(2) #n[4] # Y en fonction du nombre de neurone sur le dernier layer  
                               
 ##################### THETA BIAS ##########################
 
@@ -57,20 +64,11 @@ B = []
 W.append(0)
 B.append(0)
 
-n = []
-n.append(col)
-
-# n[x] = number of neuron for layer x (n[0] = input)
-n.append(30) #n[1]
-n.append(30) #n[2]
-n.append(30) #n[3] # ATTENTION il peut etre nescessaire de modifier
-n.append(2)   #n[4] # Y en fonction du nombre de neurone sur le dernier layer
-
 for i in range(1, nb_layer + 1):
     rand = random_number(n[i], n[i - 1], 0.01)
     #rand = random_number(n[i], n[i - 1], 2 / line_train)
     W.append(np.reshape([[rand]], (n[i], n[i - 1])))
-    rand = random_number(n[i], 1, 0.01)
+    rand = random_number(n[i], 1, 0.00)
     B.append(np.reshape([[0.0] * n[i]], (n[i], 1)))
 
 ##################### Y (RESULTAT) ####################
@@ -83,10 +81,13 @@ for i in range(0, line_train):
     if (res[i] == 'M'):
         Y[0][i] = 1
 
-Y_test = np.reshape([[0] * (line - line_train)], (1, line - line_train))
-for i in range(line_train, line):
-    if (res[i] == 'M'):
-        Y_test[0][i - line_train] = 1
+if (line_test > 0):
+    Y_test = np.reshape([[0] * (line - line_train)], (1, line - line_train))
+    for i in range(line_train, line):
+        if (res[i] == 'M'):
+            Y_test[0][i - line_train] = 1
+else:
+    Y_test = Y
 
 ################ Y SOFT FONCTION 2 CLASS ###################
 
@@ -98,21 +99,22 @@ for i in range(0, line_train):
     else:
         Y_soft[1][i] = 1
 
-Y_soft_test = np.reshape([[0] * (line - line_train) * 2], (2, line - line_train))
-for i in range(line_train, line):
-    if (res[i] == 'M'):
-        Y_soft_test[0][i - line_train] = 1
-    else:
-        Y_soft_test[1][i - line_train] = 1
+if (line_test > 0):
+    Y_soft_test = np.reshape([[0] * (line - line_train) * 2], (2, line - line_train))
+    for i in range(line_train, line):
+        if (res[i] == 'M'):
+            Y_soft_test[0][i - line_train] = 1
+        else:
+            Y_soft_test[1][i - line_train] = 1
+else:
+    Y_soft_test = Y_soft
 
-################### DATA SELECTION #######################
+################## DATA SCALING #############################
 
 A0 = data.drop(drop, axis=1).values[:line_train,:]
 A0 = np.reshape(A0, (line_train, col))
 X_test = data.drop(drop, axis=1).values[line_train:,:]
 X_test = np.reshape(X_test, (line_test, col))
-
-################## DATA SCALING #############################
 
 name = []
 for key in data:
@@ -127,14 +129,16 @@ def moy(A0, line):
     return (_sum / count)
 
 def change_nan(A0, col, line, data, name):
+    nb_nan = 0
     for c in range(0, col):
         if (c != 1):
             _moy = moy(data[name[c]], line)
             for l in range(0, line):
                 if (A0[l][c] != A0[l][c]):
                     A0[l][c] = _moy
+                    nb_nan += 1
+    #print("nb nan :", nb_nan)
     return (A0)
-
 
 def scale(matrix):
     x, y = np.shape(matrix)
@@ -161,9 +165,10 @@ def scale(matrix):
 A0 = change_nan(A0, col, line_train, data, name)
 A0 = scale(A0)
 A0 = np.transpose(A0)
-X_test = change_nan(X_test, col, line_test, data, name)
-X_test = scale(X_test)
-X_test = np.transpose(X_test)
+if (line_test > 0):
+    X_test = change_nan(X_test, col, line_test, data, name)
+    X_test = scale(X_test)
+    X_test = np.transpose(X_test)
 
 ################### CHECK FUNCTION ####################
 
@@ -198,7 +203,8 @@ def cost_function(Y, W, B, A_test, Z_test, activation):
         for i in range(1, nb_layer + 1):
             regu = np.sum(np.transpose(W[i]).dot(W[i]))
             return ((-ret / (x * y)) + ((lambd / (2 * line_train)) * regu))
-    return ((-ret / (x * y)))
+    return ((-ret / (x)))
+    #return ((-ret / (x * y)))
 
 def gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer):
     size = 0
@@ -221,7 +227,6 @@ def gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer)
     l = 0
     for i in range(1, nb_layer + 1):
         x, y = np.shape(W[i])
-        print(x, y)
         for j in range(0, x):
             for k in range(0, y):
                 W[i][j][k] += eps
@@ -243,7 +248,7 @@ def gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer)
     b = np.sqrt(np.sum((Dapprox ** 2)))
     c = np.sqrt(np.sum((DT ** 2)))
     check = a / (b + c)
-    print(check)
+    print("Gradient checking : ", check)
     #for i in range(0, size):
      #   print(Dapprox[i], DT[i])
     return (0)
@@ -259,7 +264,7 @@ def relu(Z):
     return (Z)
 
 def d_relu(Z):
-    if (Z.any() <= 0):
+    if (Z.any() < 0):
         Z = 0
     else:
         Z = 1
@@ -271,7 +276,7 @@ def leaky_relu(Z):
     return (Z)
 
 def d_leaky_relu(Z):
-    if (Z.any() <= 0):
+    if (Z.any() < 0):
         Z = 0.01
     else:
         Z = 1
@@ -311,7 +316,7 @@ def forward(A, Z, W, B, activation):
         elif (activation[l] == "sigmoid"):
             A[l] =  sigmoid(Z[l])
 
-def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha):
+def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient):
     l = nb_layer
     DZ[l] = A[l] - Y
     DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
@@ -326,21 +331,21 @@ def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha):
             DZ[l - x] = DA[l - x] * d_tanh(Z[l - x])
         DW[l - x] = (1 / line_train) * DZ[l - x].dot(np.transpose(A[l - 1 - x]))
         DB[l - x] = (1 / line_train) * np.sum(DZ[l - x], axis=1, keepdims=True)
-    
-    if (momentum != 1):
-        for i in range(1, nb_layer + 1):
-            W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
-            B[i] = B[i] - alpha * DB[i]
-    else:
-        for i in range(1, nb_layer + 1):
-            x, y = np.shape(W[i])
-            vdw = np.reshape([[0.0] * x * y], (x, y))
-            x, y = np.shape(B[i])
-            vdb = np.reshape([[0.0] * x * y], (x, y))
-            vdw = (beta * vdw) + ((1 - beta) * DW[i])
-            vdb = (beta * vdb) + ((1 - beta) * DB[i])
-            W[i] = W[i] - (alpha * vdw)
-            B[i] = B[i] - (alpha * vdb)
+    if (gradient != 1):
+        if (momentum != 1):
+            for i in range(1, nb_layer + 1):
+                W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
+                B[i] = B[i] - alpha * DB[i]
+        else:
+            for i in range(1, nb_layer + 1):
+                x, y = np.shape(W[i])
+                vdw = np.reshape([[0.0] * x * y], (x, y))
+                x, y = np.shape(B[i])
+                vdb = np.reshape([[0.0] * x * y], (x, y))
+                vdw = (beta * vdw) + ((1 - beta) * DW[i])
+                vdb = (beta * vdb) + ((1 - beta) * DB[i])
+                W[i] = W[i] - (alpha * vdw)
+                B[i] = B[i] - (alpha * vdb)
 
 def neural_network(Y, Y_test, W, cost, B, activation, alpha, gradient):
     for i in range(0, num_iters):
@@ -348,14 +353,16 @@ def neural_network(Y, Y_test, W, cost, B, activation, alpha, gradient):
             #alpha *= 0.98
             print(i)
         forward(A, Z, W, B, activation)
-        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha)
+        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient)
         if (gradient == 1):
             gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer)
+            gradient = 0
         cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
         if (cost[i] > cost[i - 1]):
             A[0] = X_test
             forward(A, Z, W, B, activation)
             return (A[nb_layer], i)
+    print(i + 1)
     A[0] = X_test
     forward(A, Z, W, B, activation)
     return (A[nb_layer], num_iters)
@@ -380,10 +387,16 @@ for i in range(0, nb_layer + 1):
     Z.append(0)
     Z_test.append(0)
 A[0] = A0
-A_test[0] = X_test
+if (line_train == line):
+    A_test[0] = A0
+else:
+    A_test[0] = X_test
 cost = []
 
-YH, num_iters = neural_network(Y_soft, Y_soft_test, W, cost, B, activation, alpha, gradient)
+if (activation[nb_layer] == "soft_max"):
+    YH, num_iters = neural_network(Y_soft, Y_soft_test, W, cost, B, activation, alpha, gradient)
+else:
+    YH, num_iters = neural_network(Y, Y_test, W, cost, B, activation, alpha, gradient)
 YH = np.reshape(YH, (n[nb_layer], line_test))
 
 ################# COST VISU CHECK #################
