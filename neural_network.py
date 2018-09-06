@@ -12,9 +12,8 @@ data = data.reset_index(drop=True)
 
 ################### HYPER PARAM ##########################
 
-nb_layer = 4
 num_iters = 5000
-alpha = 0.005
+alpha = 0.2
 gradient = 1
 
 momentum = 0 # set a 1 to activate momentum gradient
@@ -22,7 +21,7 @@ beta = 0.9
 
 lambd = 0 # set as 1 to activate l2 regularization
 
-drop = [1]
+drop = [1] # features to drop in for A0 
 col -= 1
 #drop = [0,1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,25,26,27,28,2,9,30,31]
 #col -= 26
@@ -45,6 +44,7 @@ activation.append("soft_max")   # utiliser sur le denier layer
 n = []
 n.append(col)
 
+nb_layer = 4
 # n[x] = number of neuron for layer x (n[0] = input)
 n.append(30) #n[1]
 n.append(30) #n[2]
@@ -188,6 +188,20 @@ def recall(confu):
     if (confu['vp'] + confu['fn'] != 0):
         print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])) * 100)
 
+
+
+def cost_function_russe(X, Y, w1, w2, w3, b1, b2, b3, m):
+    sum = 0
+    pred = forward_prop(X, w1, w2, w3, b1, b2, b3)
+    Y = Y.transpose()
+    for i in range(int(m)):
+        for k in range(1):
+            if (Y[k][i] == 1):
+                sum += np.log(pred[k][i])
+            else:
+                sum += np.log(1 - pred[k][i])
+    return ((-(1 / m) * sum))
+
 def cost_function(Y, W, B, A_test, Z_test, activation):
     forward(A_test, Z_test, W, B, activation)
     ret = 0
@@ -199,12 +213,13 @@ def cost_function(Y, W, B, A_test, Z_test, activation):
                 ret += np.log(YH[j][i])
             else:
                 ret += np.log(1 - YH[j][i])
-    if (lambd == 1):
+
+    if (lambd != 1):
+        return ((-ret / (x * y)))
+    else:
         for i in range(1, nb_layer + 1):
             regu = np.sum(np.transpose(W[i]).dot(W[i]))
-            return ((-ret / (x * y)) + ((lambd / (2 * line_train)) * regu))
-    return ((-ret / (x)))
-    #return ((-ret / (x * y)))
+            return ((-ret / (x * y)) + ((lambd / (2 * x)) * regu))
 
 def gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer):
     size = 0
@@ -224,6 +239,7 @@ def gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer)
             DT[a] = DB[i][j]
             a += 1
     eps = 0.0000001
+    print("epsilon : ", eps)
     l = 0
     for i in range(1, nb_layer + 1):
         x, y = np.shape(W[i])
@@ -316,11 +332,11 @@ def forward(A, Z, W, B, activation):
         elif (activation[l] == "sigmoid"):
             A[l] =  sigmoid(Z[l])
 
-def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient):
+def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient, nb_layer):
     l = nb_layer
     DZ[l] = A[l] - Y
-    DW[l] = (1 / line_train) * DZ[l].dot(np.transpose(A[l - 1]))
-    DB[l] = (1 / line_train) * np.sum(DZ[l], axis=1, keepdims=True)
+    DW[l] = (1 / line_train) * (DZ[l].dot(np.transpose(A[l - 1])))
+    DB[l] = (1 / line_train) * (np.sum(DZ[l], axis=1, keepdims=True))
     for x in range(1, l):
         DA[l - x] = np.transpose(W[l - x + 1]).dot(DZ[l - x + 1])
         if (activation[l - x] == "relu"):
@@ -329,23 +345,24 @@ def backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient):
             DZ[l - x] = DA[l - x] * d_leaky_relu(Z[l - x])
         elif (activation[l - x] == "tanh"):
             DZ[l - x] = DA[l - x] * d_tanh(Z[l - x])
-        DW[l - x] = (1 / line_train) * DZ[l - x].dot(np.transpose(A[l - 1 - x]))
-        DB[l - x] = (1 / line_train) * np.sum(DZ[l - x], axis=1, keepdims=True)
-    if (gradient != 1):
-        if (momentum != 1):
-            for i in range(1, nb_layer + 1):
-                W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
-                B[i] = B[i] - alpha * DB[i]
-        else:
-            for i in range(1, nb_layer + 1):
-                x, y = np.shape(W[i])
-                vdw = np.reshape([[0.0] * x * y], (x, y))
-                x, y = np.shape(B[i])
-                vdb = np.reshape([[0.0] * x * y], (x, y))
-                vdw = (beta * vdw) + ((1 - beta) * DW[i])
-                vdb = (beta * vdb) + ((1 - beta) * DB[i])
-                W[i] = W[i] - (alpha * vdw)
-                B[i] = B[i] - (alpha * vdb)
+        DW[l - x] = (1 / line_train) * (DZ[l - x].dot(np.transpose(A[l - 1 - x])))
+        DB[l - x] = (1 / line_train) * (np.sum(DZ[l - x], axis=1, keepdims=True))
+    if (gradient == 1):
+        gradient_checking(W, B, DW, DB, Y, line_train, A, Z, nb_layer)
+    if (momentum != 1):
+        for i in range(1, nb_layer + 1):
+            W[i] = W[i] - alpha * (DW[i] + ((lambd / (2 * line_train)) * W[i]))
+            B[i] = B[i] - alpha * DB[i]
+    else:
+        for i in range(1, nb_layer + 1):
+            x, y = np.shape(W[i])
+            vdw = np.reshape([[0.0] * x * y], (x, y))
+            x, y = np.shape(B[i])
+            vdb = np.reshape([[0.0] * x * y], (x, y))
+            vdw = (beta * vdw) + ((1 - beta) * DW[i])
+            vdb = (beta * vdb) + ((1 - beta) * DB[i])
+            W[i] = W[i] - (alpha * vdw)
+            B[i] = B[i] - (alpha * vdb)
 
 def neural_network(Y, Y_test, W, cost, B, activation, alpha, gradient):
     for i in range(0, num_iters):
@@ -353,16 +370,15 @@ def neural_network(Y, Y_test, W, cost, B, activation, alpha, gradient):
             #alpha *= 0.98
             print(i)
         forward(A, Z, W, B, activation)
-        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient)
+        backward(A, DA, W, DW, B, DB, Z, DZ, Y, activation, alpha, gradient, nb_layer)
         if (gradient == 1):
-            gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer)
             gradient = 0
         cost.append(cost_function(Y_test, W, B, A_test, Z_test, activation))
         if (cost[i] > cost[i - 1]):
+            print(i + 1)
             A[0] = X_test
             forward(A, Z, W, B, activation)
             return (A[nb_layer], i)
-    print(i + 1)
     A[0] = X_test
     forward(A, Z, W, B, activation)
     return (A[nb_layer], num_iters)
