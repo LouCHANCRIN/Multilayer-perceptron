@@ -188,8 +188,6 @@ def recall(confu):
     if (confu['vp'] + confu['fn'] != 0):
         print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])) * 100)
 
-
-
 def cost_function_russe(X, Y, w1, w2, w3, b1, b2, b3, m):
     sum = 0
     pred = forward_prop(X, w1, w2, w3, b1, b2, b3)
@@ -205,17 +203,23 @@ def cost_function_russe(X, Y, w1, w2, w3, b1, b2, b3, m):
 def cost_function(Y, W, B, A_test, Z_test, activation):
     forward(A_test, Z_test, W, B, activation)
     ret = 0
-    YH = np.transpose(A_test[nb_layer])
-    x, y = np.shape(YH)
-    for i in range(0, y):
-        for j in range(0, x):
-            if (Y[i][j] == 1):
-                ret += np.log(YH[j][i])
-            else:
-                ret += np.log(1 - YH[j][i])
-
+    YH = A_test[nb_layer]
+    y, x = np.shape(YH)
+    #print(np.shape(Y), np.shape(YH))
+    if (activation[nb_layer] == "soft_max"):
+        for i in range(0, y):
+            for j in range(0, x):
+                if (Y[i][j] == 1):
+                    ret += Y[i][j] * np.log(YH[i][j])
+    else:
+        for i in range(0, y):
+            for j in range(0, x):
+                if (Y[i][j] == 1):
+                    ret += np.log(YH[i][j])
+                else:
+                    ret += np.log(1 - YH[i][j])
     if (lambd != 1):
-        return ((-ret / (x * y)))
+        return ((-ret / (x)))
     else:
         for i in range(1, nb_layer + 1):
             regu = np.sum(np.transpose(W[i]).dot(W[i]))
