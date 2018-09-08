@@ -13,8 +13,8 @@ data = data.reset_index(drop=True)
 ################### HYPER PARAM ##########################
 
 num_iters = 5000
-alpha = 0.2
-gradient = 1
+alpha = 0.05
+gradient = 0
 
 momentum = 0 # set a 1 to activate momentum gradient
 beta = 0.9
@@ -187,18 +187,6 @@ def precision(confu):
 def recall(confu):
     if (confu['vp'] + confu['fn'] != 0):
         print("Recall : ", (confu['vp'] / (confu['vp'] + confu['fn'])) * 100)
-
-def cost_function_russe(X, Y, w1, w2, w3, b1, b2, b3, m):
-    sum = 0
-    pred = forward_prop(X, w1, w2, w3, b1, b2, b3)
-    Y = Y.transpose()
-    for i in range(int(m)):
-        for k in range(1):
-            if (Y[k][i] == 1):
-                sum += np.log(pred[k][i])
-            else:
-                sum += np.log(1 - pred[k][i])
-    return ((-(1 / m) * sum))
 
 def cost_function(Y, W, B, A_test, Z_test, activation):
     forward(A_test, Z_test, W, B, activation)
