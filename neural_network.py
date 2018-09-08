@@ -193,7 +193,6 @@ def cost_function(Y, W, B, A_test, Z_test, activation):
     ret = 0
     YH = A_test[nb_layer]
     y, x = np.shape(YH)
-    #print(np.shape(Y), np.shape(YH))
     if (activation[nb_layer] == "soft_max"):
         for i in range(0, y):
             for j in range(0, x):
@@ -257,8 +256,6 @@ def gradient_checking(W, B, DW, DB, Y_test, line_test, A_test, Z_test, nb_layer)
     c = np.sqrt(np.sum((DT ** 2)))
     check = a / (b + c)
     print("Gradient checking : ", check)
-    #for i in range(0, size):
-     #   print(Dapprox[i], DT[i])
     return (0)
 
 ################# ATCIVATION FUNCTION #################
