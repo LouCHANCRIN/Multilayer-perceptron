@@ -27,6 +27,4 @@ dt.Y_soft()
 drop = [1] # features to drop in for A0
 nb_drop = 1
 dt.create_A(hyp, drop, nb_drop)
-nb_neurone = [dt.col, 30, 30, 30, 2]
-par = param.parameters(hyp, nb_neurone)
-print(dt.A[0])
+par = param.parameters(hyp, [dt.col, 30, 30, 30, 2], dt)
