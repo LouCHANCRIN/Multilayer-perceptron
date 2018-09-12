@@ -4,27 +4,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import data_transformation as dat
-import parameters as param
+import neural_network as nn
+import metric
 
-ressource = sys.argv[3]
+ressource = sys.argv[1]
 
-class hyper_parameters:
-
-    def __init__(self):
-        self.num_iters = 5000
-        self.alpha = 0.05    # learning rate
-        self.gradient = 0 # set as 1 to activate gradient checking
-        self.momentum = 0 # set a 1 to activate momentum gradient
-        self.beta = 0.9
-        self.lambd = 0    # set as 1 to activate l2 regularization
-        self.nb_layer = 4
-
-hyp = hyper_parameters()
-
+num_iters = 500
+alpha = 0.05
+nb_layer = 4
+gradient_checking = 0
 dt = dat.data_set(ressource, 0.6)
 dt.Y_soft()
 
 drop = [1] # features to drop in for A0
 nb_drop = 1
-dt.create_A(hyp, drop, nb_drop)
-par = param.parameters(hyp, [dt.col, 30, 30, 30, 2], dt)
+dt.create_A(nb_layer, drop, nb_drop)
+
+nb_neurone_by_layer = [dt.col, 30, 30, 30, 2] 
+nn = nn.neural_network(nb_layer, nb_neurone_by_layer, dt)
+met = metric.metric()
+
+def main(nn, dt, metric, num_iters, alpha, nb_layer, gradient_checking):
+    for i in range(0, num_iters):
+        if (i % 100 == 0):
+            print(i)
+        activation = [0, "relu", "leaky_relu", "tanh", "soft_max"]
+        nn.forward(nb_layer, activation)
+        nn.backward(nb_layer, dt, activation)
+        if (gradient_checking == 1):
+            met.gradient_checking(nn, dt, nb_layer, activation)
+            gradient_checking = 0
+        nn.update(nb_layer, alpha)
+        met.add_cost(nn, dt, activation, nb_layer)
+    #YH need to be created with test set
+    met.create_confu(dt, nn.YH)
+    met.accuracy(dt.line_test)
+    met.precision()
+    met.recall()
+    met.print_cost()
+        
+
+main(nn, dt, metric, num_iters, alpha, nb_layer, gradient_checking)

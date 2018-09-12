@@ -92,11 +92,11 @@ class data_set:
             else:
                 self.Y_test = self.Y
 
-    def create_A(self, hyp, drop, nb_drop):
+    def create_A(self, nb_layer, drop, nb_drop):
         if (nb_drop < self.col):
             self.col -= nb_drop
-        self.A = [0] * (hyp.nb_layer + 1)
-        self.A_test = [0] * (hyp.nb_layer + 1)
+        self.A = [0] * (nb_layer + 1)
+        self.A_test = [0] * (nb_layer + 1)
         X = self.data.drop(drop, axis=1).values[:self.line,:]
         self.A[0] = self.data.drop(drop, axis=1).values[:self.line_train,:]
         self.A[0] = np.reshape(self.A[0], (self.line_train, self.col))
