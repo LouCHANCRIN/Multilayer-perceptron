@@ -33,66 +33,82 @@ class neural_network:
     
 ################ ACTIVATION ###################
 
-    def relu(self, l):
-        if (self.Z[l].any() < 0):
-            self.Z[l] = 0
-        return (self.Z[l])
+    def relu(self, Z):
+        if (Z.any() < 0):
+            Z = 0
+        return (Z)
 
-    def d_relu(self, l):
-        if (self.Z[l].any() < 0):
-            self.Z[l] = 0
+    def d_relu(self, Z):
+        if (Z.any() < 0):
+            Z = 0
         else:
-            self.Z[l] = 1
-        return (self.Z[l])
+            Z = 1
+        return (Z)
 
-    def leaky_relu(self, l):
-        if (self.Z[l].any() < 0):
-            self.Z[l] *= 0.01
-        return (self.Z[l])
+    def leaky_relu(self, Z):
+        if (Z.any() < 0):
+            Z *= 0.01
+        return (Z)
 
-    def d_leaky_relu(self, l):
-        if (self.Z[l].any() < 0):
-            self.Z[l] = 0.01
+    def d_leaky_relu(self, Z):
+        if (Z.any() < 0):
+            Z = 0.01
         else:
-            self.Z[l] = 1
-        return (self.Z[l])
+            Z = 1
+        return (Z)
 
-    def tanh(self, l):
-        a = np.exp(self.Z[l])
-        b = np.exp(-self.Z[l])
+    def tanh(self, Z):
+        a = np.exp(Z)
+        b = np.exp(-Z)
         return ((a - b) / (a + b))
 
-    def d_tanh(self, l):
-        tan = self.tanh(l)
+    def d_tanh(self, Z):
+        tan = self.tanh(Z)
         tan = tan ** 2
         return (1 - tan)
 
-    def sigmoid(self, l):
+    def sigmoid(self, Z):
         return (1 / (1 + np.exp(-Z)))
 
-    def d_sigmoid(self, l):
-        s = self.sigmoid(l)
+    def d_sigmoid(self, Z):
+        s = self.sigmoid(Z)
         return (s * (1 - s))
 
-    def soft_max(self, l):
-        return (np.exp(self.Z[l]) / np.sum(np.exp(self.Z[l]), axis=0))
+    def soft_max(self, Z):
+        return (np.exp(Z) / np.sum(np.exp(Z), axis=0))
 
 ######### FORWARD BACKWARD ############
+
+    def forward_cost(self, nb_layer, activation):
+        for l in range(1, nb_layer + 1):
+            self.Z_test[l] = self.W[l].dot(self.A_test[l - 1]) + self.B[l]
+            if (activation[l] == "relu"):
+                self.A_test[l] = self.relu(self.Z_test[l])
+            elif (activation[l] == "leaky_relu"):
+                self.A_test[l] = self.leaky_relu(self.Z_test[l])
+            elif (activation[l] == "tanh"):
+                self.A_test[l] = self.tanh(self.Z_test[l])
+            elif (activation[l] == "soft_max"):
+                self.A_test[l] = self.soft_max(self.Z_test[l])
+            elif (activation[l] == "sigmoid"):
+                self.A_test[l] = self.sigmoid(self.Z_test[l])
+        return (self.A_test[nb_layer])
 
     def forward(self, nb_layer, activation):
         for l in range(1, nb_layer + 1):
             self.Z[l] = self.W[l].dot(self.A[l - 1]) + self.B[l]
             if (activation[l] == "relu"):
-                self.A[l] = self.relu(l)
+                self.A[l] = self.relu(self.Z[l])
             elif (activation[l] == "leaky_relu"):
-                self.A[l] = self.leaky_relu(l)
+                self.A[l] = self.leaky_relu(self.Z[l])
             elif (activation[l] == "tanh"):
-                self.A[l] = self.tanh(l)
+                self.A[l] = self.tanh(self.Z[l])
             elif (activation[l] == "soft_max"):
-                self.A[l] = self.soft_max(l)
+                self.A[l] = self.soft_max(self.Z[l])
             elif (activation[l] == "sigmoid"):
-                self.A[l] = self.sigmoid(l)
+                self.A[l] = self.sigmoid(self.Z[l])
         self.YH = self.A[nb_layer]
+        return (self.YH)
 
     def backward(self, nb_layer, dt, activation):
         l = nb_layer
@@ -104,11 +120,11 @@ class neural_network:
             y = l - x
             self.DA[y] = np.transpose(self.W[y + 1]).dot(self.DZ[y + 1])
             if (activation[y] == "relu"):
-                self.DZ[y] = self.DA[y] * self.d_relu(y)
+                self.DZ[y] = self.DA[y] * self.d_relu(self.Z[y])
             elif (activation[y] == "leaky_relu"):
-                self.DZ[y] = self.DA[y] * self.d_leaky_relu(y)
+                self.DZ[y] = self.DA[y] * self.d_leaky_relu(self.Z[y])
             elif (activation[y] == "tanh"):
-                self.DZ[y] = self.DA[y] * self.d_tanh(y)
+                self.DZ[y] = self.DA[y] * self.d_tanh(self.Z[y])
             self.DW[y] = i * self.DZ[y].dot(np.transpose(self.A[y - 1]))
             self.DB[y] = i * np.sum(self.DZ[y], axis=1, keepdims=True)
 

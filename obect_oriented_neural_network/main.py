@@ -9,7 +9,7 @@ import metric
 
 ressource = sys.argv[1]
 
-num_iters = 500
+num_iters = 2000
 alpha = 0.05
 nb_layer = 4
 gradient_checking = 0
@@ -36,8 +36,10 @@ def main(nn, dt, metric, num_iters, alpha, nb_layer, gradient_checking):
             gradient_checking = 0
         nn.update(nb_layer, alpha)
         met.add_cost(nn, dt, activation, nb_layer)
-    #YH need to be created with test set
-    met.create_confu(dt, nn.YH)
+        if (met.cost[i - 1] < met.cost[i]):
+            break
+    YH = nn.forward_cost(nb_layer, activation)
+    met.create_confu(dt, YH)
     met.accuracy(dt.line_test)
     met.precision()
     met.recall()

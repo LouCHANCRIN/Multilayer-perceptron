@@ -45,43 +45,29 @@ class metric:
             x = (self.confu['vp'] / (self.confu['vp'] + self.confu['fn'])) * 100
             print("Recall : ", x)
 
-#    def forward_cost(self, nn, dt, activation, nb_layer):
-#        for l in range(1, nb_layer + 1):
-#            print("ok\n")
-#            nn.Z_test[l] = nn.W[l].dot(nn.A[l - 1]) + nn.B[l]
-#            if (activation[l] == "relu"):
-#                nn.A_test[l] = nn.relu(l)
-#            elif (activation[l] == "leaky_relu"):
-#                nn.A_test[l] = nn.leaky_relu(l)
-#            elif (activation[l] == "tanh"):
-#                nn.A_test[l] = nn.tanh(l)
-#            elif (activation[l] == "soft_max"):
-#                nn.A_test[l] = nn.soft_max(l)
-#            elif (activation[l] == "sigmoid"):
-#                nn.A_test[l] = nn.sigmoid(l)
-#        return (nn.A_test[nb_layer])
-
     def add_cost(self, nn, dt, activation, nb_layer):
-        self.cost.append(self.cost_function(nn, dt, activation, nb_layer))
+        self.cost.append(self.cost_function(nn, dt, activation, nb_layer, 0, dt.Y_test))
 
-    def cost_function(self, nn, dt, activation, nb_layer):
-        nn.forward(nb_layer, activation)
-#       need to do forward with test set
+    def cost_function(self, nn, dt, activation, nb_layer, gradient, Y):
+        if (gradient == 1):
+            YH = nn.forward(nb_layer, activation)
+        else:
+            YH = nn.forward_cost(nb_layer, activation)
         ret = 0
-        y, x = np.shape(nn.YH)
+        y, x = np.shape(YH)
         if (activation[nb_layer] == "soft_max"):
             for i in range(0, y):
                 for j in range(0, x):
-                    if (dt.Y_test[i][j] == 1):
-                        ret += dt.Y_test[i][j] * np.log(nn.YH[i][j])
+                    if (Y[i][j] == 1):
+                        ret += np.log(YH[i][j])
         else:
             for i in range(0, y):
                 for j in range(0, x):
-                    if (dt.Y_test[i][j] == 1):
-                        ret += np.log(nn.YH[i][j])
+                    if (Y[i][j] == 1):
+                        ret += np.log(YH[i][j])
                     else:
-                        ret += np.log(1 - nn.YH[i][j])
-        return (-ret / x)
+                        ret += np.log(1 - YH[i][j])
+        return (-(ret / x))
 
     def gradient_checking(self, nn, dt, nb_layer, activation):
         size = 0
@@ -108,17 +94,17 @@ class metric:
             for j in range(0, x):
                 for k in range(0, y):
                     nn.W[i][j][k] += eps
-                    cost1 = self.cost_function(nn, dt, activation, nb_layer)
+                    cost1 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
                     nn.W[i][j][k] -= (2 * eps)
-                    cost2 = self.cost_function(nn, dt, activation, nb_layer)
+                    cost2 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
                     nn.W[i][j][k] += eps
                     Dapprox[l] = ((cost1 - cost2) / (2 * eps))
                     l += 1
             for j in range(0, x):
                 nn.B[i][j] += eps
-                cost1 = self.cost_function(nn, dt, activation, nb_layer)
+                cost1 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
                 nn.B[i][j] -= (2 * eps)
-                cost2 = self.cost_function(nn, dt, activation, nb_layer)
+                cost2 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
                 nn.B[i][j] += eps
                 Dapprox[l] = ((cost1 - cost2) / (2 * eps))
                 l += 1
