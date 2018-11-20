@@ -21,6 +21,10 @@ class neural_network:
     def __init__(self, nb_layer, nb_neurone, data):
         self.A = data.A
         self.A_test = data.A_test
+        self.A_filter = [0] * (nb_layer + 1)
+        self.A_filter_test = [0] * (nb_layer + 1)
+        self.A_pool = [0] * (nb_layer + 1)
+        self.A_pool_test = [0] * (nb_layer + 1)
         self.W = [0] * (nb_layer + 1)
         self.B = [0] * (nb_layer + 1)
         self.Z = [0] * (nb_layer + 1)
@@ -71,8 +75,8 @@ class neural_network:
         return (1 / (1 + np.exp(-Z)))
 
     def d_sigmoid(self, Z):
-        s = self.sigmoid(Z)
-        return (s * (1 - s))
+        sig = self.sigmoid(Z)
+        return (sig * (1 - sig))
 
     def soft_max(self, Z):
         return (np.exp(Z) / np.sum(np.exp(Z), axis=0))

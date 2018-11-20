@@ -9,11 +9,7 @@ class metric:
         self.cost = []
 
     def create_confu(self, dt, YH):
-        self.confu = {}
-        self.confu['vp'] = 0
-        self.confu['vn'] = 0
-        self.confu['fp'] = 0
-        self.confu['fn'] = 0
+        self.confu = {'vp': 0, 'vn': 0, 'fp': 0, 'fn': 0}
         for i in range(0, dt.line_test):
             if (dt.Y_test[0][i] == 1):
                 if (YH[0][i] >= 0.5):
@@ -67,7 +63,7 @@ class metric:
                         ret += np.log(YH[i][j])
                     else:
                         ret += np.log(1 - YH[i][j])
-        return (-(ret / x))
+        return (-ret / x)
 
     def gradient_checking(self, nn, dt, nb_layer, activation):
         size = 0

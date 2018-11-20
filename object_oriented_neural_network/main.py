@@ -4,27 +4,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import data_transformation as dat
-import neural_network as nn
+import neural_network
 import metric
 
-ressource = sys.argv[1]
-
-num_iters = 2000
-alpha = 0.05
-nb_layer = 4
-gradient_checking = 0
-dt = dat.data_set(ressource, 0.6)
-dt.Y_soft()
-
-drop = [1] # features to drop in for A0
-nb_drop = 1
-dt.create_A(nb_layer, drop, nb_drop)
-
-nb_neurone_by_layer = [dt.col, 30, 30, 30, 2] 
-nn = nn.neural_network(nb_layer, nb_neurone_by_layer, dt)
-met = metric.metric()
-
-def main(nn, dt, metric, num_iters, alpha, nb_layer, gradient_checking):
+def main():
+    ressource = sys.argv[1]
+    num_iters = 2000
+    alpha = 0.05
+    nb_layer = 4
+    gradient_checking = 0
+    dt = dat.data_set(ressource, 0.6)
+    dt.Y_soft()
+    drop = [1] # features to drop in for A0
+    nb_drop = 1
+    dt.create_A(nb_layer, drop, nb_drop)
+    nb_neurone_by_layer = [dt.col, 30, 30, 30, 2] 
+    nn = neural_network.neural_network(nb_layer, nb_neurone_by_layer, dt)
+    met = metric.metric()
     for i in range(0, num_iters):
         if (i % 100 == 0):
             print(i)
@@ -45,5 +41,5 @@ def main(nn, dt, metric, num_iters, alpha, nb_layer, gradient_checking):
     met.recall()
     met.print_cost()
         
-
-main(nn, dt, metric, num_iters, alpha, nb_layer, gradient_checking)
+if __name__ == "__main__":
+    main()
