@@ -7,21 +7,17 @@ ressource = sys.argv[1]
 data = pd.read_csv(ressource, header=None)
 line, col = np.shape(data)
 col -= 1
-print(data)
 
 Y = data[1]
-print(Y)
 Y = np.reshape(Y, (line, 1))
 
 X = data.drop([1], axis=1).values
 X = np.reshape(X, (line, col))
-print(X)
 
 name = []
 for key in data:
     name.append(key)
 
-print(name)
 
 def moy(X, line):
     count = 0
@@ -34,7 +30,6 @@ def moy(X, line):
 
 def change_nan(X, col, line, data, name):
     for c in range(0, col):
-        print(name[c])
         if (c != 1):
             _moy = moy(data[name[c]], line)
             for l in range(0, line):
