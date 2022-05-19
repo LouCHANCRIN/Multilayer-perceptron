@@ -9,7 +9,7 @@ line, col = np.shape(data)
 col -= 1
 
 Y = data[1]
-Y = np.reshape(Y, (line, 1))
+Y = np.reshape(Y, (line))
 
 X = data.drop([1], axis=1).values
 X = np.reshape(X, (line, col))
