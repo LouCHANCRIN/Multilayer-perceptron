@@ -1,7 +1,3 @@
-import pandas as pd
-import random
-import numpy as np
-import matplotlib.pyplot as plt
 import sys
 import data_transformation as dat
 import neural_network
@@ -12,7 +8,7 @@ def main():
     num_iters = 2000
     alpha = 0.05
     nb_layer = 4
-    gradient_checking = 0
+    gradient_checking = True
     dt = dat.data_set(ressource, 0.6)
     dt.Y_soft()
     drop = [1] # features to drop in for A0
@@ -27,9 +23,10 @@ def main():
         activation = [0, "relu", "leaky_relu", "tanh", "soft_max"]
         nn.forward(nb_layer, activation)
         nn.backward(nb_layer, dt, activation)
-        if (gradient_checking == 1):
+        if (gradient_checking):
+            print("Gradient checking")
             met.gradient_checking(nn, dt, nb_layer, activation)
-            gradient_checking = 0
+            gradient_checking = False
         nn.update(nb_layer, alpha)
         met.add_cost(nn, dt, activation, nb_layer)
         if (met.cost[i - 1] < met.cost[i]):
