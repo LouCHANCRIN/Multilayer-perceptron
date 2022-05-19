@@ -40,10 +40,10 @@ class metric:
             print("Recall : ", x)
 
     def add_cost(self, nn, dt, activation, nb_layer):
-        self.cost.append(self.cost_function(nn, dt, activation, nb_layer, 0, dt.Y_test))
+        self.cost.append(self.cost_function(nn, dt, activation, nb_layer, False, dt.Y_test))
 
     def cost_function(self, nn, dt, activation, nb_layer, gradient, Y):
-        if (gradient == 1):
+        if (gradient == True):
             YH = nn.forward(nb_layer, activation)
         else:
             YH = nn.forward_cost(nb_layer, activation)
@@ -73,6 +73,8 @@ class metric:
         a = 0
         for i in range(1, nb_layer + 1):
             x, y = np.shape(nn.W[i])
+
+            # Why loop on this to update DT[a] and then redo a lopp that will overwrite the first one
             for j in range(0, x):
                 for k in range(0, y):
                     DT[a] = nn.DW[i][j][k]
@@ -88,17 +90,17 @@ class metric:
             for j in range(0, x):
                 for k in range(0, y):
                     nn.W[i][j][k] += eps
-                    cost1 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
+                    cost1 = self.cost_function(nn, dt, activation, nb_layer, True, dt.Y)
                     nn.W[i][j][k] -= (2 * eps)
-                    cost2 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
+                    cost2 = self.cost_function(nn, dt, activation, nb_layer, True, dt.Y)
                     nn.W[i][j][k] += eps
                     Dapprox[l] = ((cost1 - cost2) / (2 * eps))
                     l += 1
             for j in range(0, x):
                 nn.B[i][j] += eps
-                cost1 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
+                cost1 = self.cost_function(nn, dt, activation, nb_layer, True, dt.Y)
                 nn.B[i][j] -= (2 * eps)
-                cost2 = self.cost_function(nn, dt, activation, nb_layer, 1, dt.Y)
+                cost2 = self.cost_function(nn, dt, activation, nb_layer, True, dt.Y)
                 nn.B[i][j] += eps
                 Dapprox[l] = ((cost1 - cost2) / (2 * eps))
                 l += 1
