@@ -9,6 +9,9 @@ def moy(A0, line):
         count += 1
     return (_sum / count)
 
+'''
+Replace NaN with the mean of all datas in that column
+'''
 def change_nan(A, data):
     nb_nan = 0
     line_data, col_data = np.shape(data)
@@ -19,9 +22,11 @@ def change_nan(A, data):
             if (A[l][c] != A[l][c]):
                 A[l][c] = _moy
                 nb_nan += 1
-    #print("nb nan :", nb_nan)
     return (A)
 
+'''
+Reduce data between -1 and 1 to avoid overflows
+'''
 def scale(matrix, X):
     matrix = change_nan(matrix, X)
     x, y = np.shape(matrix)
@@ -45,9 +50,11 @@ def scale(matrix, X):
 
 
 class data_set:
+    '''
+    Read the csv file and create the data array
+    '''
 
     def __init__(self, ressource, percent_train):
-        print("Ressource :", ressource)
         self.data = pd.read_csv(ressource, header=None)
         self.line, self.col = np.shape(self.data)
         self.data = self.data.iloc[np.random.permutation(self.line)]
@@ -55,7 +62,14 @@ class data_set:
         self.line_train = int(self.line * percent_train)
         self.line_test = self.line - self.line_train
 
+    '''
+    Create the known result object for sigmoid function output
+    We've decided to predict if a tumor is malignent, therefor we give the value 1 to malignent tumors
+    and 0 for benign tumors
+    '''
     def Y_sig(self):
+        res = self.data[1]
+        res = np.reshape(res, (self.line))
         self.Y = np.reshape([[0] * self.line_train], (1, self.line_train))
         for i in range(0, self.line_train):
             if (res[i] == 'M'):
@@ -68,6 +82,11 @@ class data_set:
         else:
             self.Y_test = self.Y
 
+    '''
+    Create the known result object for softmax function output
+    We've decided to predict if a tumor is malignent, therefor we give the value 1 to malignent tumors
+    and 0 for benign tumors
+    '''
     def Y_soft(self):
         res = self.data[1]
         res = np.reshape(res, (self.line))
@@ -87,18 +106,29 @@ class data_set:
         else:
             self.Y_test = self.Y
 
+    '''
+    Create the train and test array
+    '''
     def create_A(self, nb_layer, drop, nb_drop):
         if (nb_drop < self.col):
             self.col -= nb_drop
+
         self.A = [0] * (nb_layer + 1)
         self.A_test = [0] * (nb_layer + 1)
         X = self.data.drop(drop, axis=1).values[:self.line,:]
+
+        # Split the data set in training and testing
         self.A[0] = self.data.drop(drop, axis=1).values[:self.line_train,:]
         self.A[0] = np.reshape(self.A[0], (self.line_train, self.col))
         self.A_test[0] = self.data.drop(drop, axis=1).values[self.line_train:,:]
         self.A_test[0] = np.reshape(self.A_test[0], (self.line_test, self.col))
+
+        # Scale the training data to avoid overflow during training
         self.A[0] = scale(self.A[0], X)
         self.A[0] = np.transpose(self.A[0])
+
+        # Scale the testing data if there is any because we use scaled training data
+        # so our model expect scale data to be coherent
         if (self.line_test > 0):
             self.A_test[0] = scale(self.A_test[0], X)
             self.A_test[0] = np.transpose(self.A_test[0])

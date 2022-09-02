@@ -19,14 +19,15 @@ def set_theta(W, B, nb_layer, n):
 class neural_network:
 
     def __init__(self, nb_layer, nb_neurone, data):
+        # Data train
         self.A = data.A
+        # Data test
         self.A_test = data.A_test
-        self.A_filter = [0] * (nb_layer + 1)
-        self.A_filter_test = [0] * (nb_layer + 1)
-        self.A_pool = [0] * (nb_layer + 1)
-        self.A_pool_test = [0] * (nb_layer + 1)
+        # Weight
         self.W = [0] * (nb_layer + 1)
+        # Bias
         self.B = [0] * (nb_layer + 1)
+        # 
         self.Z = [0] * (nb_layer + 1)
         self.Z_test = [0] * (nb_layer + 1)
         self.DA = [0] * (nb_layer + 1)
@@ -37,7 +38,14 @@ class neural_network:
     
 ################ ACTIVATION ###################
 
+    def return_random_activation_function(self):
+        available_activations = ['relu', 'leaky_relu', 'tanh']
+
+        return available_activations[random.randrange(len(available_activations))]
+
     def relu(self, Z):
+        # Linear function where y = x if x > 0 else y = 0.
+        # The negative inputs are turned to 0 which decrease the precision of the model
         if (Z.any() < 0):
             Z = 0
         return (Z)
@@ -50,6 +58,8 @@ class neural_network:
         return (Z)
 
     def leaky_relu(self, Z):
+        # Linear function where y = x if x > 0 else y = x * 0.01
+        # Similar to the relu function where negative input are reduce but still negative
         if (Z.any() < 0):
             Z *= 0.01
         return (Z)
@@ -62,6 +72,8 @@ class neural_network:
         return (Z)
 
     def tanh(self, Z):
+        # Sigmoid function that goes from -1 to 1. The difference with the classic sigmoid is that
+        # it goes to negative values which gives more weights to negative inputs
         a = np.exp(Z)
         b = np.exp(-Z)
         return ((a - b) / (a + b))
@@ -72,6 +84,7 @@ class neural_network:
         return (1 - tan)
 
     def sigmoid(self, Z):
+        # Sigmoid function that goes between 0 and 1.
         return (1 / (1 + np.exp(-Z)))
 
     def d_sigmoid(self, Z):
@@ -79,11 +92,13 @@ class neural_network:
         return (sig * (1 - sig))
 
     def soft_max(self, Z):
+        # Used in the final layer of neural network classifiers. Used or multi class classification.
+        # The sum of the output will be equal to 1 as it gives a probability our data correspond to each class.
         return (np.exp(Z) / np.sum(np.exp(Z), axis=0))
 
 ######### FORWARD BACKWARD ############
 
-    def forward_cost(self, nb_layer, activation):
+    def forward_test(self, nb_layer, activation):
         for l in range(1, nb_layer + 1):
             self.Z_test[l] = self.W[l].dot(self.A_test[l - 1]) + self.B[l]
             if (activation[l] == "relu"):
@@ -114,12 +129,18 @@ class neural_network:
         self.YH = self.A[nb_layer]
         return (self.YH)
 
-    def backward(self, nb_layer, dt, activation):
+    def backward(self, nb_layer, data, activation):
         l = nb_layer
-        i = 1 / dt.line_train
-        self.DZ[l] = self.A[l] - dt.Y
-        self.DW[l] = i * (self.DZ[l].dot(np.transpose(self.A[l - 1])))
-        self.DB[l] = i * (np.sum(self.DZ[l], axis=1, keepdims=True))
+        i = 1 / data.line_train
+        
+        # Difference between our prediction and the reality
+        self.DZ[l] = self.A[l] - data.Y
+        
+        # Use the difference to calculate the derivative of our weights and bias
+        self.DW[l] = (1 / data.line_train) * (self.DZ[l].dot(np.transpose(self.A[l - 1])))
+        self.DB[l] = (1 / data.line_train) * (np.sum(self.DZ[l], axis=1, keepdims=True))
+
+        # Backpropagate to each layer to calculate all weight and bias derivatives
         for x in range(1, l):
             y = l - x
             self.DA[y] = np.transpose(self.W[y + 1]).dot(self.DZ[y + 1])
@@ -129,8 +150,8 @@ class neural_network:
                 self.DZ[y] = self.DA[y] * self.d_leaky_relu(self.Z[y])
             elif (activation[y] == "tanh"):
                 self.DZ[y] = self.DA[y] * self.d_tanh(self.Z[y])
-            self.DW[y] = i * self.DZ[y].dot(np.transpose(self.A[y - 1]))
-            self.DB[y] = i * np.sum(self.DZ[y], axis=1, keepdims=True)
+            self.DW[y] = (1 / data.line_train) * self.DZ[y].dot(np.transpose(self.A[y - 1]))
+            self.DB[y] = (1 / data.line_train) * np.sum(self.DZ[y], axis=1, keepdims=True)
 
     def update(self, nb_layer, alpha):
         for l in range(1, nb_layer + 1):
